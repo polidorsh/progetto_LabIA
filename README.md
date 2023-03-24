@@ -54,6 +54,16 @@ implementerete. Inoltre, in questa esercitazione vi sara' la possibilita' di vis
 OpenCV (Open Source Computer Vision Library) [OpenCV Homepage](https://opencv.org/) è una libreria di elaborazione delle immagini e della visione artificiale open-source. È scritta in C++, ma esiste anche una versione Python chiamata cv2. Questo potente strumento è utilizzato in una vasta gamma di applicazioni inerenti la computer vision, tuttavia noi la utilizzeremo solo parzialmente. Infatti la useremo solamente per costruire una GUI personalizzata e interattiva, mediante la quale possiamo cambiare manualmente i parametri di nostro interesse, andando verificare i cambiamenti delle immagini in tempo reale.
 
 ### 0.1 Installazione ###
+## Repository ufficiale
+Nella macchina virtuale BIAR 4.3 la versione di opencv disponibile è la 3.2. 
+Per installarla da terminale dovete eseguire questi comandi:
+
+    sudo apt update
+    sudo apt install libopencv-dev libopencv-core3.2
+    
+ovviemente utilizzando la password della macchina virtuale quando vi viene richiesta. Per altri sistemi linux, il procedimento è analogo.
+
+## Source
 Per l'installazione faccio riferimento alla pagina ufficiale di OpenCV dove troverete oltre alle istruzioni di installazione, una collezione molto ampia di tutorial che vi spiega nel dettaglio come utilizzare questo strumento. [OpenCV Tutorials](https://docs.opencv.org/3.4/df/d65/tutorial_table_of_content_introduction.html).
 
 Prima di tutto installate i componenti fondamentali (necessitate solo di quelli con la flag compiler e required, degli optional potete farne a meno).
