@@ -1,4 +1,4 @@
-find_package( OpenCV REQUIRED )
+find_package( OpenCV QUIET )
 include_directories( ${OpenCV_INCLUDE_DIRS} )
 file(MAKE_DIRECTORY ../../interactive_visualization)
 
