@@ -30,6 +30,7 @@ link_libraries(uwimg++ m stdc++)
 
 add_executable(test1 src/test/test1.cpp)
 add_executable(test2 src/test/test2.cpp)
+add_executable(test3 src/test/test3.cpp)
 add_executable(test4 src/test/test4.cpp)
 add_executable(make-panorama src/test/make-panorama.cpp)
 

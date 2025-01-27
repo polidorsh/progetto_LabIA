@@ -298,8 +298,6 @@ Image colorize_sobel(const Image&  im);
 Image smooth_image(const Image&  im, float sigma);
 Image bilateral_filter(const Image& im, float sigma, float sigma2);
 
-
-
 // Image manipulation
 Image get_channel(const Image& im, int c);
 bool operator ==(const Image& a, const Image& b);

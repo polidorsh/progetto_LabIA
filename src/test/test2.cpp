@@ -1,5 +1,6 @@
 #include "../image.h"
 #include "../utils.h"
+#include "../filter_image.cpp"
 
 #include <string>
 
@@ -191,6 +192,19 @@ void test_bilateral()
   TEST(same_image(bif, gt));
   }
 
+void test_equalization() {
+    Image im = load_image("data/dog.jpg");
+    Image eqim1 = histogram_equalization_rgb(im, 256);
+    save_png(eqim1, "output/equalized_rgb");
+    Image gt1 = load_image("data/equalized_rgb.png");
+    TEST(same_image(eqim1, gt1));
+
+    Image eqim2 = histogram_equalization_hsv(im, 256);
+    save_png(eqim2, "output/equalized_hsv");
+    Image gt2 = load_image("data/equalized_hsv.png");
+    TEST(same_image(eqim2, gt2));
+}
+
 void run_tests()
   {
   test_nn_resize();
@@ -208,6 +222,8 @@ void run_tests()
   test_sobel();
   
   test_bilateral();
+
+  test_equalization();
   printf("%d tests, %d passed, %d failed\n", tests_total, tests_total-tests_fail, tests_fail);
   }
 

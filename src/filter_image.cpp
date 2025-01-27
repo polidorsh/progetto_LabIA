@@ -7,13 +7,8 @@
 
 #define M_PI 3.14159265358979323846
 
-// HW1 #2.1
-// Image& im: image to L1-normalize
 void l1_normalize(Image& im)
 {
-
-    // TODO: Normalize each channel
-
     for (int c = 0; c < im.c; c ++) {
         float sum = 0.0;
         for (int y = 0; y < im.h; y ++) {
@@ -33,9 +28,6 @@ void l1_normalize(Image& im)
 
 void l2_normalize(Image& im)
 {
-
-    // TODO: Normalize each channel
-
     for (int c = 0; c < im.c; c ++) {
         float sum = 0.0;
         for (int y = 0; y < im.h; y ++) {
@@ -53,14 +45,11 @@ void l2_normalize(Image& im)
     return;
 }
 
-// HW1 #2.1
-// int w: size of filter
+
 // returns the filter Image of size WxW
 Image make_box_filter(int w)
 {
     assert(w%2); // w needs to be odd
-
-    // TODO: Implement the filter
 
     Image box(w,w,1);
     float val = 1 / (float) (w * w);
@@ -74,24 +63,9 @@ Image make_box_filter(int w)
     return box;
 }
 
-// HW1 #2.2
-// const Image&im: input image
-// const Image& filter: filter to convolve with
-// bool preserve: whether to preserve number of channels
 // returns the convolved image
 Image convolve_image(const Image& im, const Image& filter, bool preserve)
 {
-//  Image ret;
-//  // This is the case when we need to use the function clamped_pixel(x,y,c).
-//  // Otherwise you'll have to manually check whether the filter goes out of bounds
-//
-//  // TODO: Make sure you set the sizes of ret properly. Use ret=Image(w,h,c) to reset ret
-//  // TODO: Do the convolution operator
-//  NOT_IMPLEMENTED();
-//
-//  // Make sure to return ret and not im. This is just a placeholder
-//  return im;
-
     assert(filter.c==1);
     Image conv(im.w, im.h, im.c);
 
@@ -129,18 +103,12 @@ Image convolve_image(const Image& im, const Image& filter, bool preserve)
         }
         conv.c = 1;
     }
-
-    //l1_normalize(conv);
-
     return conv;
 }
 
-// HW1 #2.3
 // returns basic 3x3 high-pass filter
 Image make_highpass_filter()
 {
-    // TODO: Implement the filter
-
     Image f (3,3,1);
 
     f(0,0,0) = 0;
@@ -156,12 +124,9 @@ Image make_highpass_filter()
     return f;
 }
 
-// HW1 #2.3
 // returns basic 3x3 sharpen filter
 Image make_sharpen_filter()
 {
-    // TODO: Implement the filter
-
     Image f (3,3,1);
 
     f(0,0,0) = 0;
@@ -177,12 +142,9 @@ Image make_sharpen_filter()
     return f;
 }
 
-// HW1 #2.3
 // returns basic 3x3 emboss filter
 Image make_emboss_filter()
 {
-    // TODO: Implement the filter
-
     Image f (3,3,1);
 
     f(0,0,0) = -2;
@@ -198,8 +160,7 @@ Image make_emboss_filter()
     return f;
 }
 
-// HW1 #2.4
-// float sigma: sigma for the gaussian filter
+
 // returns basic gaussian filter
 Image make_gaussian_filter(float sigma)
 {
@@ -232,9 +193,6 @@ Image make_gaussian_filter(float sigma)
 }
 
 
-// HW1 #3
-// const Image& a: input image
-// const Image& b: input image
 // returns their sum
 Image add_image(const Image& a, const Image& b)
 {
@@ -252,9 +210,7 @@ Image add_image(const Image& a, const Image& b)
     return res;
 }
 
-// HW1 #3
-// const Image& a: input image
-// const Image& b: input image
+
 // returns their difference res=a-b
 Image sub_image(const Image& a, const Image& b)
 {
@@ -272,12 +228,9 @@ Image sub_image(const Image& a, const Image& b)
     return res;
 }
 
-// HW1 #4.1
 // returns basic GX filter
 Image make_gx_filter()
 {
-    // TODO: Implement the filter
-
     Image f (3,3,1);
 
     f(0,0,0) = -1;
@@ -293,12 +246,9 @@ Image make_gx_filter()
     return f;
 }
 
-// HW1 #4.1
 // returns basic GY filter
 Image make_gy_filter()
 {
-    // TODO: Implement the filter
-
     Image f (3,3,1);
 
     f(0,0,0) = -1;
@@ -314,14 +264,9 @@ Image make_gy_filter()
     return f;
 }
 
-// HW1 #4.2
-// Image& im: input image
 void feature_normalize(Image& im)
 {
     assert(im.w*im.h); // assure we have non-empty image
-
-    // TODO: Normalize the features for each channel
-
 
     for (int c = 0; c < im.c; c ++) {
 
@@ -367,9 +312,6 @@ void feature_normalize_total(Image& im)
 }
 
 
-// HW1 #4.3
-// Image& im: input image
-// return a pair of images of the same size
 pair<Image,Image> sobel_image(const Image& im)
 {
 
@@ -395,10 +337,6 @@ pair<Image,Image> sobel_image(const Image& im)
     return {G,T};
 }
 
-
-// HW1 #4.4
-// const Image& im: input image
-// returns the colorized Sobel image of the same size
 Image colorize_sobel(const Image& im)
 {
 
@@ -480,13 +418,6 @@ Image make_bilateral_filter (const Image &im, const Image &sgf, int cx, int cy, 
 }
 
 
-
-
-
-// HW1 #4.5
-// const Image& im: input image
-// float sigma1,sigma2: the two sigmas for bilateral filter
-// returns the result of applying bilateral filtering to im
 Image bilateral_filter(const Image& im, float sigma1, float sigma2)
 {
 
@@ -522,6 +453,81 @@ Image bilateral_filter(const Image& im, float sigma1, float sigma2)
 
     return res;
 }
+
+
+
+float *compute_histogram(const Image &im, int ch, int num_bins) {
+    float *hist = (float *) malloc(sizeof(float) * num_bins);
+    for (int i = 0; i < num_bins; ++i) {
+        hist[i] = 0;
+    }
+    int bin_val;
+    int N = im.w * im.h;
+    float eps=1.0/(num_bins*1000);
+    for (int x = 0; x < im.w; x++) {
+        for (int y = 0; y < im.h; y++) {
+            bin_val = (im(x,y,ch)-eps)*(float)num_bins;
+            hist[bin_val]++;
+        }
+    }
+    for (int i = 0; i < num_bins; i++) {
+        hist[i] /= N; // Normalize histogram
+    }
+    return hist;
+}
+
+float *compute_CDF(float *hist, int num_bins) {
+    float *cdf = (float *) malloc(sizeof(float) * num_bins);
+    cdf[0] = hist[0];
+    for (int i = 1; i < num_bins; i++) {
+        cdf[i] = cdf[i - 1] + hist[i];
+    }
+    return cdf;
+}
+
+Image histogram_equalization_hsv(const Image &im, int num_bins) {
+    // Creazione di una copia dell'immagine e conversione da RGB a HSV
+    Image new_im(im);
+    float eps=1.0/(num_bins*1000);
+    rgb_to_hsv(new_im);
+    // Calcolo dell'istogramma del canale V (luminosità)
+    float* hist = compute_histogram(new_im, 2, num_bins);
+    // Calcolo della CDF e normalizzazione
+    float* cdf = compute_CDF(hist, num_bins);
+    for(int x=0; x<new_im.w; x++){
+        for(int y=0; y<new_im.h; y++){
+            unsigned int val=(unsigned int)((new_im(x,y,2)-eps)*num_bins);
+            new_im(x,y,2)=cdf[val];
+        }
+    }
+    // Conversione da HSV a RGB e pulizia della memoria
+    hsv_to_rgb(new_im);
+    delete hist;
+    delete cdf;
+    return new_im;
+}
+
+
+Image histogram_equalization_rgb(const Image &im, int num_bins) {
+    Image new_im(im);
+    for (int c = 0; c < im.c; ++c) {
+        float *hist = compute_histogram(new_im, c, num_bins);
+        float *cdf = compute_CDF(hist, num_bins);
+        for (int x = 0; x < new_im.w; x++) {
+            for (int y = 0; y < new_im.h; y++) {
+                unsigned int val = (unsigned int)(new_im(x, y, c) * num_bins);
+                val = std::min(std::max(val, 0U), (unsigned int)(num_bins - 1)); // Clamp
+                new_im(x, y, c) = cdf[val];
+            }
+        }
+        delete hist;
+        delete cdf;
+    }
+    return new_im;
+}
+
+
+
 
 
 

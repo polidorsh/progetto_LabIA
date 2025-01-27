@@ -6,9 +6,6 @@
 
 using namespace std;
 
-// HW1 #1
-// float x,y: inexact coordinates
-// int c: channel
 // returns the nearest neighbor to pixel (x,y,c)
 float Image::pixel_nearest(float x, float y, int c) const {
     // Since you are inside class Image you can
@@ -19,9 +16,6 @@ float Image::pixel_nearest(float x, float y, int c) const {
     return pixel;
 }
 
-// HW1 #1
-// float x,y: inexact coordinates
-// int c: channel
 // returns the bilinearly interpolated pixel (x,y,c)
 float Image::pixel_bilinear(float x, float y, int c) const {
     // Since you are inside class Image you can
@@ -37,16 +31,9 @@ float Image::pixel_bilinear(float x, float y, int c) const {
     float v_lin1 = (x-x1)*v21 + (x2-x)*v11;
     float v_lin2 = (x-x1)*v22 + (x2-x)*v12;
     float pixel = (y-y1)*v_lin2 + (y2-y)*v_lin1;
-//    if (pixel > 1.0) {
-//        std::cout << "error" << std::endl;
-//    }
-
     return pixel;
 }
 
-// HW1 #1
-// int w,h: size of new image
-// const Image& im: input image
 // return new Image of size (w,h,im.c)
 Image nearest_resize(const Image &im, int w, int h) {
     Image ret(w, h, im.c);
@@ -63,14 +50,10 @@ Image nearest_resize(const Image &im, int w, int h) {
 
         }
     }
-
     return ret;
 }
 
 
-// HW1 #1
-// int w,h: size of new image
-// const Image& im: input image
 // return new Image of size (w,h,im.c)
 Image bilinear_resize(const Image &im, int w, int h) {
 
@@ -88,8 +71,6 @@ Image bilinear_resize(const Image &im, int w, int h) {
 
         }
     }
-
-
     return ret;
 }
 

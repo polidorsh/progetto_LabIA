@@ -12,24 +12,18 @@
 
 using namespace std;
 
-// Comparator for matches
-// const void *a, *b: pointers to the matches to compare.
 // returns: result of comparison, 0 if same, 1 if a > b, -1 if a < b.
-int match_compare(const void *a, const void *b)
-  {
+int match_compare(const void *a, const void *b){
   Match *ra = (Match *)a;
   Match *rb = (Match *)b;
   if (ra->distance < rb->distance) return -1;
   else if (ra->distance > rb->distance) return  1;
   else return 0;
-  }
+}
 
 
-// Place two images side by side on canvas, for drawing matching pixels.
-// const Image& a, b: images to place.
 // returns: image with both a and b side-by-side.
-Image both_images(const Image& a, const Image& b)
-  {
+Image both_images(const Image& a, const Image& b){
   assert(a.c==b.c);
   Image both(a.w + b.w, a.h > b.h ? a.h : b.h, a.c);
   
@@ -43,15 +37,10 @@ Image both_images(const Image& a, const Image& b)
       for(int i = 0; i < b.w; ++i)
         both(i+a.w, j, k) = b(i, j, k);
   return both;
-  }
+}
 
-// Draws lines between matching pixels in two images.
-// const Image& a, b: two images that have matches.
-// const vector<Match>& matches: array of matches between a and b.
-// int inliers: number of inliers at beginning of matches, drawn in green.
 // returns: image with matches drawn between a and b on same canvas.
-Image draw_matches(const Image& a, const Image& b, const vector<Match>& matches, const vector<Match>& inliers)
-  {
+Image draw_matches(const Image& a, const Image& b, const vector<Match>& matches, const vector<Match>& inliers){
   Image both = both_images(a, b);
   
   for(int i = 0; i < (int)matches.size(); ++i)
@@ -83,27 +72,17 @@ Image draw_matches(const Image& a, const Image& b, const vector<Match>& matches,
       }
     }
   return both;
-  }
+}
 
 // Draw the matches with inliers in green between two images.
-// const Image& a, b: two images to match.
-// vector<Match> m: matches
-// Matrix H: the current homography
-// thresh: for thresholding inliers
-Image draw_inliers(const Image& a, const Image& b, const Matrix& H, const vector<Match>& m, float thresh)
-  {
+Image draw_inliers(const Image& a, const Image& b, const Matrix& H, const vector<Match>& m, float thresh){
   vector<Match> inliers = model_inliers(H, m, thresh);
   Image lines = draw_matches(a, b, m, inliers);
   return lines;
-  }
+}
 
 // Find corners, match them, and draw them between two images.
-// const Image& a, b: images to match.
-// float sigma: gaussian for harris corner detector. Typical: 2
-// float thresh: threshold for corner/no corner. Typical: 1-5
-// int nms: window to perform nms on. Typical: 3
-Image find_and_draw_matches(const Image& a, const Image& b, float sigma, float thresh, int window, int nms, int corner_method)
-  {
+Image find_and_draw_matches(const Image& a, const Image& b, float sigma, float thresh, int window, int nms, int corner_method){
   vector<Descriptor> ad= harris_corner_detector(a, sigma, thresh, window, nms, corner_method);
   vector<Descriptor> bd= harris_corner_detector(b, sigma, thresh, window, nms, corner_method);
   vector<Match> m = match_descriptors(ad, bd);
@@ -114,63 +93,53 @@ Image find_and_draw_matches(const Image& a, const Image& b, float sigma, float t
   Image lines = draw_matches(A, B, m, {});
   
   return lines;
-  }
+}
 
-// HW5 2.1
-// Calculates L1 distance between two floating point arrays.
-// vector<float>& a,b: arrays to compare.
 // returns: l1 distance between arrays (sum of absolute differences).
-float l1_distance(const vector<float>& a,const vector<float>& b)
-  {
+float l1_distance(const vector<float>& a,const vector<float>& b){
   assert(a.size()==b.size() && "Arrays must have same size\n");
-  
-  // TODO: return the correct number.
-  
-  NOT_IMPLEMENTED();
-  
-  return 0;
-  }
+  float sum=0;
+  for(int i=0; i<a.size(); i++){
+    sum+=fabs(a[i]-b[i]);
+  }  
+  return sum;
+}
 
-// HW5 2.2a
-// Finds best matches between descriptors of two images.
-// const vector<Descriptor>& a, b: array of descriptors for pixels in two images.
+
 // returns: best matches found. For each element in a[] find the index of best match in b[]
-vector<int> match_descriptors_a2b(const vector<Descriptor>& a, const vector<Descriptor>& b)
-  {
+vector<int> match_descriptors_a2b(const vector<Descriptor>& a, const vector<Descriptor>& b){
   vector<int> ind;
-  for(int j=0;j<(int)a.size();j++)
-    {
+  for(int j=0;j<(int)a.size();j++){
     int bind = -1; // <- find the best match (-1: no match)
     float best_distance=1e10f;  // <- best distance
-    
-    // TODO: find the best 'bind' descriptor in b that best matches a[j]
-    // TODO: put your code here:
-    
-    NOT_IMPLEMENTED();
+    for(int k=0; k<b.size(); k++){
+      float dist=l1_distance(a[j].data, b[k].data);
+      if(dist<=best_distance){
+        best_distance=dist;
+        bind=k;
+      }
     }
+    ind.push_back(bind);
+  }
   return ind;
   
-  }
+}
 
 
-// HW5 2.2b
-// Finds best matches between descriptors of two images.
-// const vector<Descriptor>& a, b: array of descriptors for pixels in two images.
-// returns: best matches found. each descriptor in a should match with at most
-//          one other descriptor in b.
-vector<Match> match_descriptors(const vector<Descriptor>& a, const vector<Descriptor>& b)
-  {
+// returns: best matches found. each descriptor in a should match with at most one other descriptor in b.
+vector<Match> match_descriptors(const vector<Descriptor>& a, const vector<Descriptor>& b){
   if(a.size()==0 || b.size()==0)return {};
-  
   vector<Match> m;
-  
-  // TODO: use match_descriptors_a2b(a,b) and match_descriptors_a2b(b,a)
-  // and populate `m` with good matches!
-  
-  NOT_IMPLEMENTED();
-  
-  return m;
+  vector<int> match_a2b=match_descriptors_a2b(a,b);
+  vector<int> match_b2a=match_descriptors_a2b(b,a);
+  for(int i=0; i<a.size();i++){
+    int mb=match_a2b[i];
+    if(match_b2a[mb]==i){
+      m.push_back(Match(&a[i],&b[mb],l1_distance(a[i].data, b[mb].data)));
+    }
   }
+  return m;
+}
 
 
 // HW5 3.1
