@@ -142,134 +142,122 @@ vector<Match> match_descriptors(const vector<Descriptor>& a, const vector<Descri
 }
 
 
-// HW5 3.1
-// Apply a projective transformation to a point.
-// const Matrix& H: homography to project point.
-// const Point& p: point to project.
 // returns: point projected using the homography.
-Point project_point(const Matrix& H, const Point& p)
-  {
-  // TODO: project point p with homography H.
-  // Remember that homogeneous coordinates are equivalent up to scalar.
-  // Have to divide by.... something...
-  
-  NOT_IMPLEMENTED();
-  
-  
-  return Point(0,0);
-  }
+Point project_point(const Matrix& H, const Point& p){
+  Point pp(0,0);
+  double div=H(2,0)*p.x+H(2,1)*p.y+1;
+  pp.x=(H(0,0)*p.x+H(0,1)*p.y+H(0,2))/div;
+  pp.y=(H(1,0)*p.x+H(1,1)*p.y+H(1,2))/div;
+  return pp;
+}
 
-// HW5 3.2a
-// Calculate L2 distance between two points.
-// const Point& p, q: points.
 // returns: L2 distance between them.
-double point_distance(const Point& p, const Point& q)
-  {
-  // TODO: should be a quick one.
-  NOT_IMPLEMENTED();
-  return 0;
-  }
+double point_distance(const Point& p, const Point& q){
+  double dist=sqrt(pow((p.x-q.x),2)+pow((p.y-q.y),2));
+  return dist;
+}
 
-// HW5 3.2b
-// Count number of inliers in a set of matches. Should also bring inliers
-// to the front of the array.
-// const Matrix& H: homography between coordinate systems.
-// const vector<Match>& m: matches to compute inlier/outlier.
-// float thresh: threshold to be an inlier.
 // returns: inliers whose projected point falls within thresh of their match in the other image.
-vector<Match> model_inliers(const Matrix& H, const vector<Match>& m, float thresh)
-  {
+vector<Match> model_inliers(const Matrix& H, const vector<Match>& m, float thresh){
   vector<Match> inliers;
-  // TODO: fill inliers
-  // i.e. distance(H*a.p, b.p) < thresh
-  
-  NOT_IMPLEMENTED();
-  
-  return inliers;
+  for(int i=0; i<m.size(); i++){
+    Point pp=project_point(H,m[i].a->p);
+    if(point_distance(pp,m[i].b->p)<thresh)
+      inliers.push_back(m[i]);
   }
+  return inliers;
+}
 
-// HW5 3.3
 // Randomly shuffle matches for RANSAC.
 // vector<Match>& m: matches to shuffle in place.
-void randomize_matches(vector<Match>& m)
-  {
-  // TODO: implement Fisher-Yates to shuffle the array.
-  // You might want to use the swap function like:
-  // swap(m[0],m[1]) which swaps the first and second element
-  
-  NOT_IMPLEMENTED();
+void randomize_matches(vector<Match>& m){
+  for(int i=m.size()-1; i>0; i--){
+    int j=rand()%(i+1);
+    swap(m[i],m[j]);
   }
+}
 
-// HW5 3.4
-// Computes homography between two images given matching pixels.
-// const vector<Match>& matches: matching points between images.
-// int n: number of matches to use in calculating homography.
+
 // returns: matrix representing homography H that maps image a to image b.
-Matrix compute_homography_ba(const vector<Match>& matches)
-  {
+Matrix compute_homography_ba(const vector<Match>& matches){
   if(matches.size()<4)printf("Need at least 4 points for homography! %zu supplied\n",matches.size());
   if(matches.size()<4)return Matrix::identity(3,3);
   
   Matrix M(matches.size()*2,8);
   Matrix b(matches.size()*2);
   
-  for(int i = 0; i < (int)matches.size(); ++i)
-    {
+  for(int i = 0; i < (int)matches.size(); ++i){
     double mx = matches[i].a->p.x;
     double my = matches[i].a->p.y;
     
     double nx = matches[i].b->p.x;
     double ny = matches[i].b->p.y;
-    // TODO: fill in the matrices M and b.
     
-    NOT_IMPLEMENTED();
-    
-    }
-  
-  
+    M(i*2, 0)=mx;
+    M(i*2, 1)=my;
+    M(i*2, 2)=1;
+    M(i*2, 3)=0;
+    M(i*2, 4)=0;
+    M(i*2, 5)=0;
+    M(i*2, 6)=-nx*mx;
+    M(i*2, 7)=-nx*my;
+
+    M(i*2+1, 0)=0;
+    M(i*2+1, 1)=0;
+    M(i*2+1, 2)=0;
+    M(i*2+1, 3)=mx;
+    M(i*2+1, 4)=my;
+    M(i*2+1, 5)=1;
+    M(i*2+1, 6)=-ny*mx;
+    M(i*2+1, 7)=-ny*my;
+
+    b(i*2, 0)=nx;
+    b(i*2+1,0)=ny;
+  }
   
   Matrix a = solve_system(M, b);
-  
   Matrix Hba(3, 3);
-  // TODO: fill in the homography H based on the result in a.
-  
-  NOT_IMPLEMENTED();
-  
-  return Hba;
-  }
 
-// HW5 3.5
-// Perform RANdom SAmple Consensus to calculate homography for noisy matches.
-// vector<Match> m: set of matches.
-// float thresh: inlier/outlier distance threshold.
-// int k: number of iterations to run.
-// int cutoff: inlier cutoff to exit early.
-// returns: matrix representing most common homography between matches.
-Matrix RANSAC(vector<Match> m, float thresh, int k, int cutoff)
-  {
-  if(m.size()<4)
-    {
-    //printf("Need at least 4 points for RANSAC! %zu supplied\n",m.size());
-    return Matrix::identity(3,3);
-    }
-  
-  int best = 0;
-  Matrix Hba = Matrix::translation_homography(256, 0);
-  // TODO: fill in RANSAC algorithm.
-  // for k iterations:
-  //     shuffle the matches
-  //     compute a homography with a few matches (how many??)
-  //     if new homography is better than old (how can you tell?):
-  //         compute updated homography using all inliers
-  //         remember it and how good it is
-  //         if it's better than the cutoff:
-  //             return it immediately
-  // if we get to the end return the best homography
-  
-  NOT_IMPLEMENTED();
+  Hba(0,0)=a(0,0);
+  Hba(0,1)=a(1,0);
+  Hba(0,2)=a(2,0);
+
+  Hba(1,0)=a(3,0);
+  Hba(1,1)=a(4,0);
+  Hba(1,2)=a(5,0);
+
+  Hba(2,0)=a(6,0);
+  Hba(2,1)=a(7,0);
+  Hba(2,2)=1;
   
   return Hba;
+}
+
+
+// returns: matrix representing most common homography between matches.
+Matrix RANSAC(vector<Match> m, float thresh, int k, int cutoff){
+  if(m.size()<4)
+    return Matrix::identity(3,3);
+  
+  Matrix Hba = Matrix::translation_homography(256, 0);
+  vector<Match> best_inliers;
+
+  for(int i=0; i<k; i++){
+    randomize_matches(m);
+    vector<Match> sample;
+    sample.assign(m.begin(),m.begin()+4);
+    Matrix H=compute_homography_ba(sample);
+    vector<Match> inliers=model_inliers(H,m,thresh);
+    if(inliers.size()>best_inliers.size()){
+      sample.insert(sample.end(),inliers.begin(),inliers.end());
+      H=compute_homography_ba(sample);
+      Hba=H;
+      best_inliers=inliers;
+    }
+    if(best_inliers.size()>cutoff)break;
   }
+  return Hba;
+}
 
 
 Image trim_image(const Image& a)
@@ -297,15 +285,9 @@ Image trim_image(const Image& a)
   return b;
   }
 
-// HW5 3.6
-// Stitches two images together using a projective transformation.
-// const Image& a, b: images to stitch.
-// Matrix H: homography from image a coordinates to image b coordinates.
-// float acoeff: blending coefficient
+
 // returns: combined image stitched together.
-Image combine_images(const Image& a, const Image& b, const Matrix& Hba, float ablendcoeff)
-  {
-  TIME(1);
+Image combine_images(const Image& a, const Image& b, const Matrix& Hba, float ablendcoeff){
   Matrix Hinv=Hba.inverse();
   
   // Project the corners of image b into image a coordinates.
@@ -326,27 +308,22 @@ Image combine_images(const Image& a, const Image& b, const Matrix& Hba, float ab
   int dy = min(0, (int)topleft.y);
   int w = max(a.w, (int)botright.x) - dx;
   int h = max(a.h, (int)botright.y) - dy;
-  
-  //printf("%d %d %d %d\n",dx,dy,w,h);
-  
+    
   // Can disable this if you are making very big panoramas.
   // Usually this means there was an error in calculating H.
-  if(w > 15000 || h > 4000)
-    {
+  if(w > 15000 || h > 4000){
     printf("Can't make such big panorama :/ (%d %d)\n",w,h);
     return Image(100,100,1);
-    }
+  }
   
   Image c(w, h, a.c);
   
   // Paste image a into the new image offset by dx and dy.
   for(int k = 0; k < a.c; ++k)
     for(int j = 0; j < a.h; ++j)
-      for(int i = 0; i < a.w; ++i)
-        {
-        // TODO: fill in.
-        NOT_IMPLEMENTED();
-        }
+      for(int i = 0; i < a.w; ++i){
+        c(i-dx, j-dy, k)=a(i,j,k);
+      }
   
   // TODO: Blend in image b as well.
   // You should loop over some points in the new image (which? all?)
@@ -360,14 +337,20 @@ Image combine_images(const Image& a, const Image& b, const Matrix& Hba, float ab
   // "is_nonempty_patch" and try to figure out why it might be useful.
   // The member 
   
-  // TODO: Put your code here.
-  
-  NOT_IMPLEMENTED();
-  
-  
-  // We trim the image so there are as few as possible black pixels.
-  return trim_image(c);
+  for(int j=0; j<c.w; j++){
+    for(int i=0; i<c.h; i++){
+      Point pp=project_point(Hba, Point(j+dx, i+dy));
+      if((pp.x>=0 && pp.x<=b.w) && (pp.y>=0 && pp.y<=b.h)){
+        for(int k=0; k<c.c; k++){
+          c(j,i,k)=b.pixel_bilinear(pp.x,pp.y,k);
+        }
+      }
+    }
   }
+  // We trim the image so there are as few as possible black pixels.
+  //return trim_image(c);
+  return c;
+}
 
 // Create a panoramam between two images.
 // const Image& a, b: images to stitch together.

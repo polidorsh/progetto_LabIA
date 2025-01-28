@@ -65,8 +65,8 @@ int main(int argc, char **argv)
   save_image(inliers, "output/inliers");
   save_image(pan, "output/easy_panorama");
   
-  save_image(panorama_image(cylindrical_project(a,500),cylindrical_project(b,500),2,0,0.3,7,3,5,1000,50,0.5), "output/easy_panorama_cyl");
-  save_image(panorama_image(spherical_project(a,500),spherical_project(b,500),2,0,0.3,7,3,5,1000,50,0.5), "output/easy_panorama_sphere");
+  //save_image(panorama_image(cylindrical_project(a,500),cylindrical_project(b,500),2,0,0.3,7,3,5,1000,50,0.5), "output/easy_panorama_cyl");
+  //save_image(panorama_image(spherical_project(a,500),spherical_project(b,500),2,0,0.3,7,3,5,1000,50,0.5), "output/easy_panorama_sphere");
     
   return 0;
   }
