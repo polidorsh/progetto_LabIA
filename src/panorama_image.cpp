@@ -311,10 +311,11 @@ Image combine_images(const Image& a, const Image& b, const Matrix& Hba, float ab
     
   // Can disable this if you are making very big panoramas.
   // Usually this means there was an error in calculating H.
-  if(w > 15000 || h > 4000){
+  if(w > 15000 || h > 4000)
+    {
     printf("Can't make such big panorama :/ (%d %d)\n",w,h);
     return Image(100,100,1);
-  }
+    }
   
   Image c(w, h, a.c);
   
@@ -322,35 +323,30 @@ Image combine_images(const Image& a, const Image& b, const Matrix& Hba, float ab
   for(int k = 0; k < a.c; ++k)
     for(int j = 0; j < a.h; ++j)
       for(int i = 0; i < a.w; ++i){
-        c(i-dx, j-dy, k)=a(i,j,k);
+        c(i - dx, j - dy, k) = a(i, j, k);
       }
-  
-  // TODO: Blend in image b as well.
-  // You should loop over some points in the new image (which? all?)
-  // and see if their projection from a coordinates to b coordinates falls
-  // inside of the bounds of image b. If so, use bilinear interpolation to
-  // estimate the value of b at that projection, then fill in image c.
-  
-  // When doing cylindrical and spherical, how do we cope with the missing 
-  // image values due to the warping process? Consider skipping them? 
-  // How do we know they are empty? Look in the image class for the function
-  // "is_nonempty_patch" and try to figure out why it might be useful.
-  // The member 
-  
-  for(int j=0; j<c.w; j++){
-    for(int i=0; i<c.h; i++){
-      Point pp=project_point(Hba, Point(j+dx, i+dy));
-      if((pp.x>=0 && pp.x<=b.w) && (pp.y>=0 && pp.y<=b.h)){
-        for(int k=0; k<c.c; k++){
-          c(j,i,k)=b.pixel_bilinear(pp.x,pp.y,k);
-        }
+  for (int j = 0; j < h; ++j)
+      for (int i = 0; i < w; ++i){
+          if (!c.is_nonempty_patch(i, j)) {
+
+              Point projected = project_point(Hba, Point(i + dx, j + dy));
+              if (projected.x >= 0 && projected.y >= 0 && projected.x < b.w && projected.y < b.h) {
+                  for (int k = 0; k < b.c; k++) {
+                      float prev = c(i, j, k);
+                      float pixel = b.pixel_bilinear(projected.x, projected.y, k);
+
+                      if (prev > 0) {
+                          c(i, j, k) = ablendcoeff * c(i, j, k) + (1 - ablendcoeff) * pixel;
+                      }
+                      else c(i, j, k) = pixel;
+                  }
+
+              }
+          }
       }
-    }
-  }
   // We trim the image so there are as few as possible black pixels.
-  //return trim_image(c);
-  return c;
-}
+  return trim_image(c);
+  }
 
 // Create a panoramam between two images.
 // const Image& a, b: images to stitch together.
@@ -360,8 +356,7 @@ Image combine_images(const Image& a, const Image& b, const Matrix& Hba, float ab
 // float inlier_thresh: threshold for RANSAC inliers. Typical: 2-5
 // int iters: number of RANSAC iterations. Typical: 1,000-50,000
 // int cutoff: RANSAC inlier cutoff. Typical: 10-100
-Image panorama_image(const Image& a, const Image& b, float sigma, int corner_method, float thresh, int window, int nms, float inlier_thresh, int iters, int cutoff, float acoeff)
-  {
+Image panorama_image(const Image& a, const Image& b, float sigma, int corner_method, float thresh, int window, int nms, float inlier_thresh, int iters, int cutoff, float acoeff){
   // Calculate corners and descriptors
   vector<Descriptor> ad;
   vector<Descriptor> bd;
@@ -380,31 +375,37 @@ Image panorama_image(const Image& a, const Image& b, float sigma, int corner_met
   
   // Stitch the images together with the homography
   return combine_images(a, b, Hba, acoeff);
-  }
+}
 
-// HW5 4.1
-// Project an image onto a cylinder.
-// const Image& im: image to project.
-// float f: focal length used to take image (in pixels).
 // returns: image projected onto cylinder, then flattened.
 Image cylindrical_project(const Image& im, float f)
   {
   //TODO: project image onto a cylinder
-  double hfov=atan(im.w/(2*f));
-  double vfov=im.h/2./f;
-  
-  // For your convenience we have computed the output size
-  Image c(im.w/cos(hfov),im.h/cos(hfov),im.c);
-  
-  NOT_IMPLEMENTED();
-  
-  return c;
+    Image c(im.w, im.h, im.c);
+    int xc = im.w / 2;
+    int yc = im.h / 2;
+
+    for (int j = 0; j < im.h; j++) {
+        for (int i = 0; i < im.w; i++) {
+            float theta = (i - xc) / f;
+            float h = (j - yc) / f;
+            float X = sin(theta);
+            float Y = h;
+            float Z = cos(theta);
+            float new_x = ((f * X) / Z) + xc;
+            float new_y = ((f * Y) / Z) + yc;
+            int a = (int)new_x;
+            int b = (int)new_y;
+            if (a >= 0 && a < im.w && b >= 0 && b < im.h)
+                for (int k = 0; k < im.c; k++) {
+                    c(i, j, k) = im(a, b, k);
+                }
+
+        }
+    }
+    return c;
   }
 
-// HW5 4.2
-// Project an image onto a cylinder.
-// const Image& im: image to project.
-// float f: focal length used to take image (in pixels).
 // returns: image projected onto cylinder, then flattened.
 Image spherical_project(const Image& im, float f)
   {
@@ -413,9 +414,28 @@ Image spherical_project(const Image& im, float f)
   double vfov=atan(im.h/(2*f));
   
   // For your convenience we have computed the output size
-  Image c(im.w/cos(hfov),im.h/cos(hfov),im.c);
-  
-  NOT_IMPLEMENTED();
-  
+
+  Image c(im.w, im.h, im.c);
+  int xc = im.w / 2;
+  int yc = im.h / 2;
+
+  for (int j = 0; j < im.h; j++) {
+      for (int i = 0; i < im.w; i++) {
+          float theta = (i - xc) / f;
+          float h = (j - yc) / f;
+          float X = sin(theta) * cos(h);
+          float Y = sin(h);
+          float Z = cos(theta) * cos(h);
+          float new_x = f * (X / Z) + xc;
+          float new_y = f * (Y / Z) + yc;
+          int a = (int)new_x;
+          int b = (int)new_y;
+          if (a >= 0 && a < im.w && b >= 0 && b < im.h)
+              for (int k = 0; k < im.c; k++) {
+                  c(i, j, k) = im(a, b, k);
+              }
+      }
+  }
+
   return c;
   }

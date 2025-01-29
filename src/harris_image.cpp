@@ -15,12 +15,11 @@ Descriptor describe_index(const Image& im, int x, int y, int w){
   d.p={(double)x,(double)y};
   d.data.reserve(w*w*im.c);
   
-  for(int c=0;c<im.c;c++)
-    {
+  for(int c=0;c<im.c;c++){
     float cval = im.clamped_pixel(x,y,c);
     for(int dx=-w/2;dx<=w/2;dx++)for(int dy=-w/2;dy<=w/2;dy++)
       d.data.push_back(im.clamped_pixel(x+dx,y+dy,c)-cval);
-    }
+  }
   return d;
 }
 
@@ -157,8 +156,7 @@ vector<Descriptor> detect_corners(const Image& im, const Image& nms, float thres
 // float thresh: threshold for cornerness.
 // int nms: distance to look for local-maxes in response map.
 // returns: vector of descriptors of the corners in the image.
-vector<Descriptor> harris_corner_detector(const Image& im, float sigma, float thresh, int window, int nms, int corner_method)
-  {
+vector<Descriptor> harris_corner_detector(const Image& im, float sigma, float thresh, int window, int nms, int corner_method){
   // Calculate structure matrix
   Image S = structure_matrix(im, sigma);
   
@@ -169,15 +167,14 @@ vector<Descriptor> harris_corner_detector(const Image& im, float sigma, float th
   Image Rnms = nms_image(R, nms);
   
   return detect_corners(im, Rnms, thresh, window);
-  }
+}
 
 // Find and draw corners on an image.
 // Image& im: input image.
 // float sigma: std. dev for harris.
 // float thresh: threshold for cornerness.
 // int nms: distance to look for local-maxes in response map.
-Image detect_and_draw_corners(const Image& im, float sigma, float thresh, int window, int nms, int corner_method)
-  {
+Image detect_and_draw_corners(const Image& im, float sigma, float thresh, int window, int nms, int corner_method){
   vector<Descriptor> d = harris_corner_detector(im, sigma, thresh, window, nms, corner_method);
   return mark_corners(im, d);
-  }
+}
