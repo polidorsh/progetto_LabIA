@@ -48,7 +48,7 @@ Image mark_corners(const Image& im, const vector<Descriptor>& d){
 Image make_1d_gaussian(float sigma){
   int w=ceil(sigma*6);
   if(!(w%2))w++;
-  Image lin(w,1,1); // set to proper dimension
+  Image lin(w,1,1); 
   for(int x=0; x<lin.w; x++){
     int rx=x-(w/2);
     float var=powf(sigma,2);
@@ -75,11 +75,8 @@ Image smooth_image(const Image& im, float sigma){
 
 // returns: structure matrix. 1st channel is Ix^2, 2nd channel is Iy^2, third channel is IxIy.
 Image structure_matrix(const Image& im2, float sigma){
-  TIME(1);
-  // only grayscale or rgb
   assert((im2.c==1 || im2.c==3) && "only grayscale or rgb supported");
   Image im;
-  // convert to grayscale if necessary
   if(im2.c==1)im=im2;
   else im=rgb_to_grayscale(im2);
   
@@ -151,29 +148,14 @@ vector<Descriptor> detect_corners(const Image& im, const Image& nms, float thres
 
 
 // Perform harris corner detection and extract features from the corners.
-// const Image& im: input image.
-// float sigma: std. dev for harris.
-// float thresh: threshold for cornerness.
-// int nms: distance to look for local-maxes in response map.
-// returns: vector of descriptors of the corners in the image.
 vector<Descriptor> harris_corner_detector(const Image& im, float sigma, float thresh, int window, int nms, int corner_method){
-  // Calculate structure matrix
   Image S = structure_matrix(im, sigma);
-  
-  // Estimate cornerness
   Image R = cornerness_response(S,corner_method);
-  
-  // Run NMS on the responses
   Image Rnms = nms_image(R, nms);
-  
   return detect_corners(im, Rnms, thresh, window);
 }
 
 // Find and draw corners on an image.
-// Image& im: input image.
-// float sigma: std. dev for harris.
-// float thresh: threshold for cornerness.
-// int nms: distance to look for local-maxes in response map.
 Image detect_and_draw_corners(const Image& im, float sigma, float thresh, int window, int nms, int corner_method){
   vector<Descriptor> d = harris_corner_detector(im, sigma, thresh, window, nms, corner_method);
   return mark_corners(im, d);

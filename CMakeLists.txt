@@ -34,7 +34,8 @@ add_executable(test3 src/test/test3.cpp)
 add_executable(test4 src/test/test4.cpp)
 add_executable(make-panorama src/test/make-panorama.cpp)
 
-add_executable(laplacian_test src/test/laplacian_test.cpp)
+add_executable(LAP_test src/test/LAP_test.cpp)
+add_executable(DOG_test src/test/DOG_test.cpp)
 
 
 
