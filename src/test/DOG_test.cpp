@@ -8,10 +8,10 @@
 using namespace std;
 
 int main(){
-Image a = load_image("pano/rainier/0.jpg");
-Image b = load_image("pano/rainier/2.jpg");
-save_image(a, "output/a.jpg");
-save_image(b, "output/b.jpg");
+Image a = load_image("pano/columbia/0.jpg");
+Image b = load_image("pano/columbia/1.jpg");
+save_image(a, "output/a");
+save_image(b, "output/b");
 
 
 // Parametri per il rilevatore DoG
@@ -28,19 +28,19 @@ int cutoff = 50;
 
 // Visualizza i keypoint
 Image dog_points = detect_and_draw_dog(a, sigma1, sigma2, thresh, window_size, nms_window);
-save_image(dog_points, "output/dog_keypoints.jpg");
+save_image(dog_points, "output/dog_keypoints");
 
 // Visualizza tutti i matches
 Image matches = find_and_draw_dog_matches(a, b, sigma1, sigma2, thresh, window_size, nms_window);
-save_image(matches, "output/dog_matches.jpg");
+save_image(matches, "output/dog_matches");
 
 // Visualizza inliers e outliers
 Image inliers = draw_dog_inliers(a, b, sigma1, sigma2, thresh, window_size, nms_window,
                                 inlier_thresh, ransac_iters, cutoff);
-save_image(inliers, "output/dog_inliers.jpg");
+save_image(inliers, "output/dog_inliers");
 
 // Crea il panorama
 Image pano = panorama_image_dog(a, b, sigma1, sigma2, thresh, window_size, nms_window,
                                inlier_thresh, ransac_iters, cutoff, 0.5);
-save_image(pano, "output/dog_panorama.jpg");
+save_image(pano, "output/dog_panorama");
 }
