@@ -3,158 +3,89 @@
 #include <cstring>
 #include <cmath>
 #include <cassert>
-#include <vector>
 #include "image.h"
 
-using namespace std;
-
-// Crea un livello della piramide DoG (Differenza di Gaussiane)
-// sigma1: valore di sigma più piccolo
-// sigma2: valore di sigma più grande (tipicamente sigma1 * k, dove k è solitamente √2)
-// restituisce: immagine della differenza tra le due gaussiane
-Image dog_create_level(const Image& im, float sigma1, float sigma2) {
-    // Applica il filtro gaussiano con sigma1 e sigma2
-    Image smooth1 = smooth_image(im, sigma1);
-    Image smooth2 = smooth_image(im, sigma2);
+// Funzione per descrivere un punto nell'immagine con una finestra di dimensione w
+Descriptor describe_index(const Image& im, int x, int y, int w) {
+    Descriptor d;
+    d.p = {(double)x, (double)y};
+    d.data.reserve(w * w * im.c);
     
-    // Crea l'immagine DoG sottraendo le due immagini smussate
-    Image dog(im.w, im.h, 1);
-    for(int y = 0; y < im.h; y++) {
-        for(int x = 0; x < im.w; x++) {
-            dog(x,y,0) = smooth2(x,y,0) - smooth1(x,y,0); // Differenza tra le due immagini smussate
+    for (int c = 0; c < im.c; c++) {
+        float cval = im.clamped_pixel(x, y, c);
+        for (int dx = -w / 2; dx <= w / 2; dx++) {
+            for (int dy = -w / 2; dy <= w / 2; dy++) {
+                d.data.push_back(im.clamped_pixel(x + dx, y + dy, c) - cval);
+            }
+        }
+    }
+    return d;
+}
+
+// Calcola la risposta della Differenza di Gaussiana (DoG)
+Image compute_dog_response(const Image& im, float sigma1, float sigma2) {
+    assert(sigma2 > sigma1 && "sigma2 deve essere maggiore di sigma1");
+    
+    Image gray = (im.c == 3) ? rgb_to_grayscale(im) : im;
+    
+    // Sfocature gaussiane
+    Image blur1 = smooth_image(gray, sigma1);
+    Image blur2 = smooth_image(gray, sigma2);
+    
+    // Calcolo della differenza tra le due sfocature
+    Image dog(gray.w, gray.h, 1);
+    for (int y = 0; y < gray.h; ++y) {
+        for (int x = 0; x < gray.w; ++x) {
+            dog(x, y, 0) = blur1(x, y, 0) - blur2(x, y, 0);
         }
     }
     return dog;
 }
 
-// Verifica se un punto è un estremo locale in un vicinato 3x3x3 nello spazio delle scale
-bool dog_is_extremum(const vector<Image>& dog_pyramid, int level, int x, int y) {
-    float center_val = dog_pyramid[level](x,y,0); // Valore del centro nel livello corrente
-    bool is_max = true; // Flag per il massimo
-    bool is_min = true; // Flag per il minimo
+// Rileva punti chiave utilizzando la DoG e restituisce i descrittori
+vector<Descriptor> dog_detector(const Image& im, float sigma1, float sigma2, float thresh, int window_size, int nms_window) {
+    Image response = compute_dog_response(im, sigma1, sigma2);
+    Image nms = nms_image(response, nms_window);
+    vector<Descriptor> descriptors;
     
-    // Controllo del vicinato 3x3x3
-    for(int l = max(0, level-1); l <= min((int)dog_pyramid.size()-1, level+1); l++) {
-        for(int dy = -1; dy <= 1; dy++) {
-            for(int dx = -1; dx <= 1; dx++) {
-                if(l == level && dx == 0 && dy == 0) continue; // Salta il centro
-                float neighbor = dog_pyramid[l].clamped_pixel(x+dx, y+dy, 0);
-                if(neighbor >= center_val) is_max = false; // Se il vicino è maggiore, non è un massimo
-                if(neighbor <= center_val) is_min = false; // Se il vicino è minore, non è un minimo
+    for (int y = 0; y < im.h; ++y) {
+        for (int x = 0; x < im.w; ++x) {
+            if (nms(x, y, 0) > thresh) {
+                descriptors.push_back(describe_index(im, x, y, window_size));
             }
         }
     }
-    return is_max || is_min; // Se è un massimo o un minimo, è un estremo
+    return descriptors;
 }
 
-// Crea un marcatore visivo per la posizione e la scala di un keypoint
-void dog_mark_spot(Image& im, const Point& p, float scale) {
-    int x = p.x;
-    int y = p.y;
-    int radius = round(scale * 3); // Scala il marcatore con la scala del keypoint
-    
-    for(int i = -radius; i <= radius; ++i) {
-        // Disegna una croce centrata sul keypoint
-        im.set_pixel(x+i, y, 0, 1); // Linea orizzontale
-        im.set_pixel(x, y+i, 0, 1); // Linea verticale
-        // Disegna una circonferenza approssimata
-        for(int j = -radius; j <= radius; ++j) {
-            if(abs(i*i + j*j - radius*radius) < radius) { // Approccio per approssimare un cerchio
-                im.set_pixel(x+i, y+j, 2, 1); // Colore blu per il cerchio
-            }
-        }
-    }
+// Rileva e disegna i punti chiave DoG
+Image detect_and_draw_dog(const Image& im, float sigma1, float sigma2, float thresh, int window_size, int nms_window) {
+    vector<Descriptor> descriptors = dog_detector(im, sigma1, sigma2, thresh, window_size, nms_window);
+    return mark_corners(im, descriptors);
 }
 
-// Funzione per segnare e visualizzare i keypoints sull'immagine
-Image dog_mark_keypoints(const Image& im, const vector<Descriptor>& d, const vector<float>& scales) {
-    Image im2 = im;
-    for(size_t i = 0; i < d.size(); ++i) {
-        dog_mark_spot(im2, d[i].p, scales[i]); // Disegna ogni keypoint sull'immagine
-    }
-    return im2;
+// Trova e disegna corrispondenze tra immagini usando DoG
+Image find_and_draw_dog_matches(const Image& a, const Image& b, float sigma1, float sigma2, float thresh, int window_size, int nms_window) {
+    vector<Descriptor> ad = dog_detector(a, sigma1, sigma2, thresh, window_size, nms_window);
+    vector<Descriptor> bd = dog_detector(b, sigma1, sigma2, thresh, window_size, nms_window);
+    vector<Match> matches = match_descriptors(ad, bd);
+    return draw_matches(mark_corners(a, ad), mark_corners(b, bd), matches, {});
 }
 
-// Funzione principale per rilevare i keypoints usando la Differenza di Gaussiane (DoG)
-// octaves: numero di ottave nello spazio delle scale
-// intervals: numero di intervalli per ottava
-// sigma: valore iniziale di sigma
-// contrast_threshold: soglia per filtrare i keypoints deboli
-vector<Descriptor> dog_detect_keypoints(const Image& im2, int octaves, int intervals, 
-                                      float sigma, float contrast_threshold) {
-    // Converte l'immagine in scala di grigio se necessario
-    Image im;
-    if(im2.c == 1) im = im2;
-    else im = rgb_to_grayscale(im2);
-    
-    vector<Descriptor> keypoints; // Lista dei keypoints rilevati
-    vector<float> scales; // Memorizza le scale per la visualizzazione
-    float k = pow(2.0f, 1.0f/intervals); // Fattore di scala tra gli intervalli
-    
-    // Per ogni ottava
-    Image current_im = im;
-    for(int o = 0; o < octaves; ++o) {
-        vector<Image> dog_pyramid;
-        
-        // Crea la piramide DoG per questa ottava
-        for(int i = 0; i < intervals + 2; ++i) {
-            float sigma1 = sigma * pow(k, i); // Calcola sigma per il primo livello
-            float sigma2 = sigma * pow(k, i+1); // Calcola sigma per il secondo livello
-            dog_pyramid.push_back(dog_create_level(current_im, sigma1, sigma2)); // Crea il livello DoG
-        }
-        
-        // Trova gli estremi nella piramide DoG
-        for(int i = 1; i < intervals + 1; ++i) {
-            for(int y = 1; y < current_im.h-1; ++y) {
-                for(int x = 1; x < current_im.w-1; ++x) {
-                    if(fabs(dog_pyramid[i](x,y,0)) < contrast_threshold) continue; // Scarta i valori sotto la soglia
-                    
-                    if(dog_is_extremum(dog_pyramid, i, x, y)) { // Verifica se è un estremo
-                        // Calcola le coordinate del keypoint tenendo conto della scala
-                        float scale_factor = pow(2.0f, o); // Fattore di scala per l'ottava
-                        Point p = {(double)(x * scale_factor), (double)(y * scale_factor)};
-                        
-                        // Crea un descrittore per il keypoint
-                        Descriptor d;
-                        d.p = p;
-                        
-                        // Memorizza il keypoint e la sua scala
-                        keypoints.push_back(d);
-                        scales.push_back(sigma * pow(k, i) * scale_factor);
-                    }
-                }
-            }
-        }
-        
-        // Riduci la risoluzione dell'immagine per la prossima ottava
-        if(o < octaves-1) {
-            Image smaller(current_im.w/2, current_im.h/2, 1);
-            for(int y = 0; y < smaller.h; ++y) {
-                for(int x = 0; x < smaller.w; ++x) {
-                    smaller(x,y,0) = current_im(2*x,2*y,0); // Subsampling
-                }
-            }
-            current_im = smaller; // Aggiorna l'immagine per la prossima ottava
-        }
-    }
-    
-    return keypoints; // Restituisce la lista dei keypoints trovati
+// Disegna corrispondenze tra immagini evidenziando inlier e outlier
+Image draw_dog_inliers(const Image& a, const Image& b, float sigma1, float sigma2, float thresh, int window_size, int nms_window, float inlier_thresh, int ransac_iters, int cutoff) {
+    vector<Descriptor> ad = dog_detector(a, sigma1, sigma2, thresh, window_size, nms_window);
+    vector<Descriptor> bd = dog_detector(b, sigma1, sigma2, thresh, window_size, nms_window);
+    vector<Match> matches = match_descriptors(ad, bd);
+    Matrix H = RANSAC(matches, inlier_thresh, ransac_iters, cutoff);
+    return draw_inliers(a, b, H, matches, inlier_thresh);
 }
 
-// Funzione principale per rilevare e disegnare i keypoints DoG sull'immagine
-Image dog_detect_and_draw_keypoints(const Image& im, int octaves, int intervals, 
-                                  float sigma, float contrast_threshold) {
-    // Rileva i keypoints
-    vector<Descriptor> keypoints = dog_detect_keypoints(im, octaves, intervals, sigma, contrast_threshold);
-    
-    // Calcola le scale per la visualizzazione (necessario per ridisegnare i keypoints)
-    vector<float> scales;
-    float k = pow(2.0f, 1.0f/intervals);
-    for(size_t i = 0; i < keypoints.size(); ++i) {
-        int octave = log2(keypoints[i].p.x / (int)keypoints[i].p.x); // Calcola l'ottava in base alla posizione
-        scales.push_back(sigma * pow(k, octave) * pow(2.0f, octave)); // Calcola la scala per ogni keypoint
-    }
-    
-    // Disegna i keypoints sull'immagine
-    return dog_mark_keypoints(im, keypoints, scales);
+// Crea un panorama utilizzando DoG per la rilevazione dei punti chiave
+Image panorama_image_dog(const Image& a, const Image& b, float sigma1, float sigma2, float thresh, int window_size, int nms_window, float inlier_thresh, int ransac_iters, int cutoff, float blend_coeff) {
+    vector<Descriptor> ad = dog_detector(a, sigma1, sigma2, thresh, window_size, nms_window);
+    vector<Descriptor> bd = dog_detector(b, sigma1, sigma2, thresh, window_size, nms_window);
+    vector<Match> matches = match_descriptors(ad, bd);
+    Matrix Hba = RANSAC(matches, inlier_thresh, ransac_iters, cutoff);
+    return combine_images(a, b, Hba, blend_coeff);
 }
