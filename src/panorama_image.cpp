@@ -344,18 +344,10 @@ Image combine_images(const Image& a, const Image& b, const Matrix& Hba, float ab
               }
           }
       }
-  // We trim the image so there are as few as possible black pixels.
   return trim_image(c);
   }
 
 // Create a panoramam between two images.
-// const Image& a, b: images to stitch together.
-// float sigma: gaussian for harris corner detector. Typical: 2
-// float thresh: threshold for corner/no corner. Typical: 1-5
-// int nms: window to perform nms on. Typical: 3
-// float inlier_thresh: threshold for RANSAC inliers. Typical: 2-5
-// int iters: number of RANSAC iterations. Typical: 1,000-50,000
-// int cutoff: RANSAC inlier cutoff. Typical: 10-100
 Image panorama_image(const Image& a, const Image& b, float sigma, int corner_method, float thresh, int window, int nms, float inlier_thresh, int iters, int cutoff, float acoeff){
   // Calculate corners and descriptors
   vector<Descriptor> ad;
@@ -378,9 +370,7 @@ Image panorama_image(const Image& a, const Image& b, float sigma, int corner_met
 }
 
 // returns: image projected onto cylinder, then flattened.
-Image cylindrical_project(const Image& im, float f)
-  {
-  //TODO: project image onto a cylinder
+Image cylindrical_project(const Image& im, float f){
     Image c(im.w, im.h, im.c);
     int xc = im.w / 2;
     int yc = im.h / 2;
@@ -404,21 +394,15 @@ Image cylindrical_project(const Image& im, float f)
         }
     }
     return c;
-  }
+}
 
 // returns: image projected onto cylinder, then flattened.
-Image spherical_project(const Image& im, float f)
-  {
-  //TODO: project image onto a sphere
+Image spherical_project(const Image& im, float f){
   double hfov=atan(im.w/(2*f));
   double vfov=atan(im.h/(2*f));
-  
-  // For your convenience we have computed the output size
-
   Image c(im.w, im.h, im.c);
   int xc = im.w / 2;
   int yc = im.h / 2;
-
   for (int j = 0; j < im.h; j++) {
       for (int i = 0; i < im.w; i++) {
           float theta = (i - xc) / f;
@@ -436,6 +420,5 @@ Image spherical_project(const Image& im, float f)
               }
       }
   }
-
   return c;
-  }
+}

@@ -8,23 +8,23 @@
 using namespace std;
 
 int main(){
-Image a = load_image("pano/columbia/0.jpg");
-Image b = load_image("pano/columbia/1.jpg");
+Image a = load_image("pano/charlie/C.jpg");
+Image b = load_image("pano/charlie/D.jpg");
 save_image(a, "output/a");
 save_image(b, "output/b");
 
 
 // Parametri per il rilevatore DoG
-float sigma1 = 1.0;
-float sigma2 = 2.0;
-float thresh = 0.03;
-int window_size = 5;
-int nms_window = 3;
+float sigma1 = 1.5;
+float sigma2 = 4.5;
+float thresh = 0.10;
+int window_size = 12;
+int nms_window = 17;
 
 // Parametri per RANSAC
-float inlier_thresh = 5.0;
-int ransac_iters = 1000;
-int cutoff = 50;
+float inlier_thresh = 7;
+int ransac_iters = 250;
+int cutoff = 100;
 
 // Visualizza i keypoint
 Image dog_points = detect_and_draw_dog(a, sigma1, sigma2, thresh, window_size, nms_window);
