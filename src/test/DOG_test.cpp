@@ -8,39 +8,39 @@
 using namespace std;
 
 int main(){
-Image a = load_image("pano/charlie/C.jpg");
-Image b = load_image("pano/charlie/D.jpg");
-save_image(a, "output/a");
-save_image(b, "output/b");
+    Image a = load_image("pano/cse/1.jpg");
+    Image b = load_image("pano/cse/2.jpg");
+    save_image(a, "output/a");
+    save_image(b, "output/b");
 
 
-// Parametri per il rilevatore DoG
-float sigma1 = 1.5;
-float sigma2 = 4.5;
-float thresh = 0.10;
-int window_size = 12;
-int nms_window = 17;
+    // Parametri per il rilevatore DoG
+    float sigma1 = 1.8;
+    float sigma2 = 3.2;
+    float thresh = 0.08;
+    int window_size = 14;
+    int nms_window = 20;
 
-// Parametri per RANSAC
-float inlier_thresh = 7;
-int ransac_iters = 250;
-int cutoff = 100;
+    // Parametri per RANSAC
+    float inlier_thresh = 7;
+    int ransac_iters = 600;
+    int cutoff = 180;
 
-// Visualizza i keypoint
-Image dog_points = detect_and_draw_dog(a, sigma1, sigma2, thresh, window_size, nms_window);
-save_image(dog_points, "output/dog_keypoints");
+    // Visualizza i keypoint
+    Image dog_points = detect_and_draw_dog(a, sigma1, sigma2, thresh, window_size, nms_window);
+    save_image(dog_points, "output/dog_keypoints");
 
-// Visualizza tutti i matches
-Image matches = find_and_draw_dog_matches(a, b, sigma1, sigma2, thresh, window_size, nms_window);
-save_image(matches, "output/dog_matches");
+    // Visualizza tutti i matches
+    Image matches = find_and_draw_dog_matches(a, b, sigma1, sigma2, thresh, window_size, nms_window);
+    save_image(matches, "output/dog_matches");
 
-// Visualizza inliers e outliers
-Image inliers = draw_dog_inliers(a, b, sigma1, sigma2, thresh, window_size, nms_window,
-                                inlier_thresh, ransac_iters, cutoff);
-save_image(inliers, "output/dog_inliers");
+    // Visualizza inliers e outliers
+    Image inliers = draw_dog_inliers(a, b, sigma1, sigma2, thresh, window_size, nms_window,
+                                    inlier_thresh, ransac_iters, cutoff);
+    save_image(inliers, "output/dog_inliers");
 
-// Crea il panorama
-Image pano = panorama_image_dog(a, b, sigma1, sigma2, thresh, window_size, nms_window,
-                               inlier_thresh, ransac_iters, cutoff, 0.5);
-save_image(pano, "output/dog_panorama");
+    // Crea il panorama
+    Image pano = panorama_image_dog(a, b, sigma1, sigma2, thresh, window_size, nms_window,
+                                    inlier_thresh, ransac_iters, cutoff, 0.5);
+    save_image(pano, "output/dog_panorama");
 }

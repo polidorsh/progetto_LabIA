@@ -8,21 +8,21 @@
 using namespace std;
 
 int main() {
-    Image a = load_image("pano/charlie/C.jpg");
-    Image b = load_image("pano/charlie/D.jpg");
+    Image a = load_image("pano/cse/1.jpg");
+    Image b = load_image("pano/cse/2.jpg");
     save_image(a, "output/a");
     save_image(b, "output/b");
 
     // Parametri per il rilevatore Laplaciano
-    float sigma = 3;
-    float thresh = 0.07;
-    int window_size = 12;
-    int nms_window = 17;
+    float sigma = 2.7;
+    float thresh = 0.08;
+    int window_size = 13;
+    int nms_window = 20;
 
     // Parametri per RANSAC
     float inlier_thresh = 7;
-    int ransac_iters = 250;
-    int cutoff = 100;
+    int ransac_iters = 600;
+    int cutoff = 180;
 
     // Visualizza i keypoint
     Image laplacian_points = detect_and_draw_laplacian(a, sigma, thresh, window_size, nms_window);

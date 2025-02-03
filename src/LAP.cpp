@@ -56,18 +56,23 @@ vector<Descriptor> laplacian_detector(const Image& im, float sigma, float thresh
 
 // Disegna i punti chiave rilevati con il metodo Laplaciano
 Image detect_and_draw_laplacian(const Image& im, float sigma, float thresh, int window, int nms) {
+    TIME(1);
     vector<Descriptor> d = laplacian_detector(im, sigma, thresh, window, nms);
+    printf("Numero di Descrittori: %ld\n", d.size());
     return mark_corners(im, d);
 }
 
 // Trova e disegna i match tra due immagini utilizzando il rilevatore Laplaciano
 Image find_and_draw_laplacian_matches(const Image& a, const Image& b, float sigma, float thresh, int window, int nms) {
+    TIME(1);
     // Rileviamo i punti chiave in entrambe le immagini
     vector<Descriptor> ad = laplacian_detector(a, sigma, thresh, window, nms);
     vector<Descriptor> bd = laplacian_detector(b, sigma, thresh, window, nms);
     
     // Troviamo le corrispondenze tra i punti chiave
     vector<Match> m = match_descriptors(ad, bd);
+    printf("Numero di Match: %ld\n", m.size());
+
     
     // Disegniamo i punti chiave e le linee di corrispondenza
     Image A = mark_corners(a, ad);
@@ -80,6 +85,7 @@ Image find_and_draw_laplacian_matches(const Image& a, const Image& b, float sigm
 // Disegna i match evidenziando gli inlier tramite RANSAC
 Image draw_laplacian_inliers(const Image& a, const Image& b, float sigma, float thresh, int window, 
                             int nms, float inlier_thresh, int iters, int cutoff) {
+    TIME(1);
     // Rileviamo i punti chiave
     vector<Descriptor> ad = laplacian_detector(a, sigma, thresh, window, nms);
     vector<Descriptor> bd = laplacian_detector(b, sigma, thresh, window, nms);
@@ -97,6 +103,7 @@ Image draw_laplacian_inliers(const Image& a, const Image& b, float sigma, float 
 // Creazione del panorama utilizzando il rilevatore Laplaciano
 Image panorama_image_laplacian(const Image& a, const Image& b, float sigma, float thresh, int window, 
                              int nms, float inlier_thresh, int iters, int cutoff, float acoeff) {
+    TIME(1);
     // Rileviamo i punti chiave
     vector<Descriptor> ad = laplacian_detector(a, sigma, thresh, window, nms);
     vector<Descriptor> bd = laplacian_detector(b, sigma, thresh, window, nms);

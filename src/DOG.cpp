@@ -60,20 +60,25 @@ vector<Descriptor> dog_detector(const Image& im, float sigma1, float sigma2, flo
 
 // Rileva e disegna i punti chiave DoG
 Image detect_and_draw_dog(const Image& im, float sigma1, float sigma2, float thresh, int window_size, int nms_window) {
+    TIME(1);
     vector<Descriptor> descriptors = dog_detector(im, sigma1, sigma2, thresh, window_size, nms_window);
+    printf("Numero di Descrittori: %ld\n", descriptors.size());
     return mark_corners(im, descriptors);
 }
 
 // Trova e disegna corrispondenze tra immagini usando DoG
 Image find_and_draw_dog_matches(const Image& a, const Image& b, float sigma1, float sigma2, float thresh, int window_size, int nms_window) {
+    TIME(1);
     vector<Descriptor> ad = dog_detector(a, sigma1, sigma2, thresh, window_size, nms_window);
     vector<Descriptor> bd = dog_detector(b, sigma1, sigma2, thresh, window_size, nms_window);
     vector<Match> matches = match_descriptors(ad, bd);
+    printf("Numero di Match: %ld\n", matches.size());
     return draw_matches(mark_corners(a, ad), mark_corners(b, bd), matches, {});
 }
 
 // Disegna corrispondenze tra immagini evidenziando inlier e outlier
 Image draw_dog_inliers(const Image& a, const Image& b, float sigma1, float sigma2, float thresh, int window_size, int nms_window, float inlier_thresh, int ransac_iters, int cutoff) {
+    TIME(1);
     vector<Descriptor> ad = dog_detector(a, sigma1, sigma2, thresh, window_size, nms_window);
     vector<Descriptor> bd = dog_detector(b, sigma1, sigma2, thresh, window_size, nms_window);
     vector<Match> matches = match_descriptors(ad, bd);
@@ -83,6 +88,7 @@ Image draw_dog_inliers(const Image& a, const Image& b, float sigma1, float sigma
 
 // Crea un panorama utilizzando DoG per la rilevazione dei punti chiave
 Image panorama_image_dog(const Image& a, const Image& b, float sigma1, float sigma2, float thresh, int window_size, int nms_window, float inlier_thresh, int ransac_iters, int cutoff, float blend_coeff) {
+    TIME(1);
     vector<Descriptor> ad = dog_detector(a, sigma1, sigma2, thresh, window_size, nms_window);
     vector<Descriptor> bd = dog_detector(b, sigma1, sigma2, thresh, window_size, nms_window);
     vector<Match> matches = match_descriptors(ad, bd);
