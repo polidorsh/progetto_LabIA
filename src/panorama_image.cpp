@@ -78,6 +78,7 @@ Image draw_matches(const Image& a, const Image& b, const vector<Match>& matches,
 Image draw_inliers(const Image& a, const Image& b, const Matrix& H, const vector<Match>& m, float thresh){
   vector<Match> inliers = model_inliers(H, m, thresh);
   Image lines = draw_matches(a, b, m, inliers);
+  printf("Numero di Inliers: %ld\n", inliers.size());
   return lines;
 }
 

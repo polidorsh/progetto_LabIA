@@ -3,94 +3,138 @@
 #include <cstring>
 #include <cmath>
 #include <cassert>
+#include <vector>
+
 #include "image.h"
 
-// Funzione per descrivere un punto nell'immagine con una finestra di dimensione w
-Descriptor describe_index(const Image& im, int x, int y, int w) {
-    Descriptor d;
-    d.p = {(double)x, (double)y};
-    d.data.reserve(w * w * im.c);
+using namespace std;
+
+Descriptor describe_index(const Image& im, int x, int y, int w){
+  Descriptor d;
+  d.p={(double)x,(double)y};
+  d.data.reserve(w*w*im.c);
+  
+  for(int c=0;c<im.c;c++){
+    float cval = im.clamped_pixel(x,y,c);
+    for(int dx=-w/2;dx<=w/2;dx++)for(int dy=-w/2;dy<=w/2;dy++)
+      d.data.push_back(im.clamped_pixel(x+dx,y+dy,c)-cval);
+  }
+  return d;
+}
+
+vector<Image> create_dog_pyramid(const Image& im, float sigma, int octaves) {
+    vector<Image> dog_pyramid;
     
-    for (int c = 0; c < im.c; c++) {
-        float cval = im.clamped_pixel(x, y, c);
-        for (int dx = -w / 2; dx <= w / 2; dx++) {
-            for (int dy = -w / 2; dy <= w / 2; dy++) {
-                d.data.push_back(im.clamped_pixel(x + dx, y + dy, c) - cval);
+    Image current = im;
+    
+    for(int o = 0; o < octaves; o++) {
+        vector<Image> gaussian_levels;
+        
+        for(int s = 0; s < 5; s++) {
+            float current_sigma = sigma * pow(2.0f, s / 2.0f);
+            gaussian_levels.push_back(smooth_image(current, current_sigma));
+        }
+        
+        for(int s = 1; s < gaussian_levels.size(); s++) {
+            Image dog = gaussian_levels[s] - gaussian_levels[s-1];
+            dog_pyramid.push_back(dog);
+        }
+        
+        current = bilinear_resize(gaussian_levels[2], gaussian_levels[2].w/2, gaussian_levels[2].h/2);
+    }
+    
+    return dog_pyramid;
+}
+
+
+vector<Descriptor> detect_dog_keypoints(const vector<Image>& dog_pyramid, float thresh, int window) {
+    vector<Descriptor> keypoints;
+    int levels = dog_pyramid.size();
+    
+    for(int level = 1; level < levels - 1; level++) {
+        Image current = dog_pyramid[level];
+        
+        for(int y = 2; y < current.h - 2; y++) {
+            for(int x = 2; x < current.w - 2; x++) {
+                float pixel_val = current.clamped_pixel(x, y, 0);
+                
+                bool is_max = true, is_min = true;
+                
+                for(int dy = -1; dy <= 1; dy++) {
+                    for(int dx = -1; dx <= 1; dx++) {
+                        for(int dl = -1; dl <= 1; dl++) {
+                            if(dl == 0 && dx == 0 && dy == 0) continue;
+                            
+                            if(level + dl < 0 || level + dl >= levels) continue;
+                            
+                            float neighbor_val = dog_pyramid[level + dl].clamped_pixel(x + dx, y + dy, 0);
+                            
+                            if(pixel_val <= neighbor_val) is_max = false;
+                            if(pixel_val >= neighbor_val) is_min = false;
+                        }
+                    }
+                }
+                
+                if((is_max || is_min) && abs(pixel_val) > thresh) {
+                    keypoints.push_back(describe_index(current, x, y, window));
+                }
             }
         }
     }
-    return d;
+    
+    return keypoints;
 }
 
-// Calcola la risposta della Differenza di Gaussiana (DoG)
-Image compute_dog_response(const Image& im, float sigma1, float sigma2) {
-    assert(sigma2 > sigma1 && "sigma2 deve essere maggiore di sigma1");
+vector<Descriptor> dog_corner_detector(const Image& im, float sigma, float thresh, int window, int nms) {
+    vector<Image> dog_pyramid = create_dog_pyramid(im, sigma, 4);
+    vector<Descriptor> keypoints = detect_dog_keypoints(dog_pyramid, thresh, window);
     
-    Image gray = (im.c == 3) ? rgb_to_grayscale(im) : im;
+    Image keypoint_response(im.w, im.h, 1);
+    for(const auto& kp : keypoints) {
+        keypoint_response(kp.p.x, kp.p.y, 0) = 1.0;
+    }
     
-    // Sfocature gaussiane
-    Image blur1 = smooth_image(gray, sigma1);
-    Image blur2 = smooth_image(gray, sigma2);
+    Image nms_keypoints = nms_image(keypoint_response, nms);
     
-    // Calcolo della differenza tra le due sfocature
-    Image dog(gray.w, gray.h, 1);
-    for (int y = 0; y < gray.h; ++y) {
-        for (int x = 0; x < gray.w; ++x) {
-            dog(x, y, 0) = blur1(x, y, 0) - blur2(x, y, 0);
+    vector<Descriptor> filtered_keypoints;
+    for(const auto& kp : keypoints) {
+        if(nms_keypoints(kp.p.x, kp.p.y, 0) > 0) {
+            filtered_keypoints.push_back(kp);
         }
     }
-    return dog;
-}
-
-// Rileva punti chiave utilizzando la DoG e restituisce i descrittori
-vector<Descriptor> dog_detector(const Image& im, float sigma1, float sigma2, float thresh, int window_size, int nms_window) {
-    Image response = compute_dog_response(im, sigma1, sigma2);
-    Image nms = nms_image(response, nms_window);
-    vector<Descriptor> descriptors;
     
-    for (int y = 0; y < im.h; ++y) {
-        for (int x = 0; x < im.w; ++x) {
-            if (nms(x, y, 0) > thresh) {
-                descriptors.push_back(describe_index(im, x, y, window_size));
-            }
-        }
-    }
-    return descriptors;
+    return filtered_keypoints;
 }
 
-// Rileva e disegna i punti chiave DoG
-Image detect_and_draw_dog(const Image& im, float sigma1, float sigma2, float thresh, int window_size, int nms_window) {
+Image detect_and_draw_dog_corners(const Image& im, float sigma, float thresh, int window, int nms) {
     TIME(1);
-    vector<Descriptor> descriptors = dog_detector(im, sigma1, sigma2, thresh, window_size, nms_window);
-    printf("Numero di Descrittori: %ld\n", descriptors.size());
-    return mark_corners(im, descriptors);
+    vector<Descriptor> d = dog_corner_detector(im, sigma, thresh, window, nms);
+    printf("Numero di Descrittori: %ld\n", d.size());
+    return mark_corners(im, d);
 }
 
-// Trova e disegna corrispondenze tra immagini usando DoG
-Image find_and_draw_dog_matches(const Image& a, const Image& b, float sigma1, float sigma2, float thresh, int window_size, int nms_window) {
+Image find_and_draw_dog_matches(const Image& a, const Image& b, float sigma, float thresh, int window, int nms) {
     TIME(1);
-    vector<Descriptor> ad = dog_detector(a, sigma1, sigma2, thresh, window_size, nms_window);
-    vector<Descriptor> bd = dog_detector(b, sigma1, sigma2, thresh, window_size, nms_window);
+    vector<Descriptor> ad = dog_corner_detector(a, sigma, thresh, window, nms);
+    vector<Descriptor> bd = dog_corner_detector(b, sigma, thresh, window, nms);
     vector<Match> matches = match_descriptors(ad, bd);
     printf("Numero di Match: %ld\n", matches.size());
     return draw_matches(mark_corners(a, ad), mark_corners(b, bd), matches, {});
 }
 
-// Disegna corrispondenze tra immagini evidenziando inlier e outlier
-Image draw_dog_inliers(const Image& a, const Image& b, float sigma1, float sigma2, float thresh, int window_size, int nms_window, float inlier_thresh, int ransac_iters, int cutoff) {
+Image draw_dog_inliers(const Image& a, const Image& b, float sigma, float thresh, int window, int nms, float inlier_thresh, int ransac_iters, int cutoff) {
     TIME(1);
-    vector<Descriptor> ad = dog_detector(a, sigma1, sigma2, thresh, window_size, nms_window);
-    vector<Descriptor> bd = dog_detector(b, sigma1, sigma2, thresh, window_size, nms_window);
+    vector<Descriptor> ad = dog_corner_detector(a, sigma, thresh, window, nms);
+    vector<Descriptor> bd = dog_corner_detector(b, sigma, thresh, window, nms);
     vector<Match> matches = match_descriptors(ad, bd);
     Matrix H = RANSAC(matches, inlier_thresh, ransac_iters, cutoff);
     return draw_inliers(a, b, H, matches, inlier_thresh);
 }
 
-// Crea un panorama utilizzando DoG per la rilevazione dei punti chiave
-Image panorama_image_dog(const Image& a, const Image& b, float sigma1, float sigma2, float thresh, int window_size, int nms_window, float inlier_thresh, int ransac_iters, int cutoff, float blend_coeff) {
+Image panorama_image_dog(const Image& a, const Image& b, float sigma, float thresh, int window, int nms, float inlier_thresh, int ransac_iters, int cutoff, float blend_coeff) {
     TIME(1);
-    vector<Descriptor> ad = dog_detector(a, sigma1, sigma2, thresh, window_size, nms_window);
-    vector<Descriptor> bd = dog_detector(b, sigma1, sigma2, thresh, window_size, nms_window);
+    vector<Descriptor> ad = dog_corner_detector(a, sigma, thresh, window, nms);
+    vector<Descriptor> bd = dog_corner_detector(b, sigma, thresh, window, nms);
     vector<Match> matches = match_descriptors(ad, bd);
     Matrix Hba = RANSAC(matches, inlier_thresh, ransac_iters, cutoff);
     return combine_images(a, b, Hba, blend_coeff);

@@ -1,119 +1,116 @@
-#include <cstdlib>
-#include <cstdio>
-#include <cstring>
-#include <cmath>
-#include <cassert>
-
 #include "image.h"
-#include "matrix.h"
+#include <vector>
+#include <cmath>
 
-using namespace std;
-
-// Creazione del filtro Laplaciano
-Image make_laplacian_filter() {
-    Image f(3,3,1);
-    f(0,0,0) = f(0,2,0) = f(2,0,0) = f(2,2,0) = 0.25;
-    f(0,1,0) = f(1,0,0) = f(1,2,0) = f(2,1,0) = 0.5;
-    f(1,1,0) = -4;
-    return f;
+Image make_log_filter(float sigma) {
+    int w = ceil(sigma * 6);
+    if (!(w % 2)) w++;
+    
+    Image filter(w, w, 1);
+    int center = w/2;
+    float sigma2 = sigma * sigma;
+    
+    for(int y = 0; y < w; y++) {
+        for(int x = 0; x < w; x++) {
+            float dx = x - center;
+            float dy = y - center;
+            float r2 = dx*dx + dy*dy;
+            
+            //  -1/(pi*sigma^4) * (1 - r^2/(2*sigma^2)) * e^(-r^2/(2*sigma^2))
+            float expr = exp(-r2/(2*sigma2));
+            filter(x, y, 0) = -1.0/(M_PI*sigma2*sigma2) * (1 - r2/(2*sigma2)) * expr;
+        }
+    }
+    return filter;
 }
 
-// Calcolo della risposta Laplaciana per la rilevazione dei punti chiave
-Image laplacian_response(const Image& im, float sigma) {
-    // Convertiamo l'immagine in scala di grigi se necessario
+Image multi_scale_log(const Image& im, float initial_sigma, int num_scales, float scale_factor) {
+    Image response(im.w, im.h, 1);
+    
     Image gray;
     if(im.c == 3) gray = rgb_to_grayscale(im);
     else gray = im;
     
-    // Applichiamo una sfocatura gaussiana per ridurre il rumore
-    Image smoothed = smooth_image(gray, sigma);
-    
-    // Applichiamo il filtro Laplaciano
-    Image f = make_laplacian_filter();
-    Image response = convolve_image(smoothed, f, true);
-    
-    // Eleviamo al quadrato la risposta per ottenere la magnitudo del contrasto
-    for(int y = 0; y < response.h; y++) {
-        for(int x = 0; x < response.w; x++) {
-            response(x,y,0) = response(x,y,0) * response(x,y,0);
+    float sigma = initial_sigma;
+    for(int s = 0; s < num_scales; s++) {
+        Image filter = make_log_filter(sigma);
+        Image scale_response = convolve_image(gray, filter, true);
+        
+        for(int y = 0; y < im.h; y++) {
+            for(int x = 0; x < im.w; x++) {
+                float val = fabs(scale_response(x, y, 0));
+                if(val > response(x, y, 0)) {
+                    response(x, y, 0) = val;
+                }
+            }
         }
+        
+        sigma *= scale_factor;
     }
     
     return response;
 }
 
-// Rilevazione dei punti chiave utilizzando il Laplaciano
-vector<Descriptor> laplacian_detector(const Image& im, float sigma, float thresh, int window, int nms) {
-    // Calcoliamo la risposta Laplaciana
-    Image response = laplacian_response(im, sigma);
+vector<Descriptor> log_detector(const Image& im, float sigma, int num_scales, 
+                              float scale_factor, float thresh, int nms_window, int window) {
     
-    // Applichiamo la soppressione dei massimi locali per ottenere solo i punti più significativi
-    Image nms_response = nms_image(response, nms);
-    
-    // Rileviamo i punti chiave e creiamo i descrittori
-    return detect_corners(im, nms_response, thresh, window);
+    Image response = multi_scale_log(im, sigma, num_scales, scale_factor);
+    Image nms = nms_image(response, nms_window);
+    return detect_corners(im, nms, thresh, window);
 }
 
-// Disegna i punti chiave rilevati con il metodo Laplaciano
-Image detect_and_draw_laplacian(const Image& im, float sigma, float thresh, int window, int nms) {
+Image detect_and_draw_log_keypoints(const Image& im, float sigma, int num_scales, 
+                                  float scale_factor, float thresh, int nms, int window) {
     TIME(1);
-    vector<Descriptor> d = laplacian_detector(im, sigma, thresh, window, nms);
-    printf("Numero di Descrittori: %ld\n", d.size());
-    return mark_corners(im, d);
+    vector<Descriptor> keypoints = log_detector(im, sigma, num_scales, scale_factor, 
+                                                thresh, nms, window);
+    
+    printf("Numero di Descrittori: %ld\n", keypoints.size());
+    return mark_corners(im, keypoints);
 }
 
-// Trova e disegna i match tra due immagini utilizzando il rilevatore Laplaciano
-Image find_and_draw_laplacian_matches(const Image& a, const Image& b, float sigma, float thresh, int window, int nms) {
+
+Image find_and_draw_laplacian_matches(const Image& a, const Image& b, float sigma, int num_scales, 
+                                  float scale_factor, float thresh, int nms, int window) {
     TIME(1);
-    // Rileviamo i punti chiave in entrambe le immagini
-    vector<Descriptor> ad = laplacian_detector(a, sigma, thresh, window, nms);
-    vector<Descriptor> bd = laplacian_detector(b, sigma, thresh, window, nms);
+    vector<Descriptor> ad = log_detector(a, sigma, num_scales, scale_factor, 
+                                        thresh, nms, window);
+    vector<Descriptor> bd = log_detector(b, sigma, num_scales, scale_factor, 
+                                        thresh, nms, window);
     
-    // Troviamo le corrispondenze tra i punti chiave
     vector<Match> m = match_descriptors(ad, bd);
     printf("Numero di Match: %ld\n", m.size());
-
     
-    // Disegniamo i punti chiave e le linee di corrispondenza
     Image A = mark_corners(a, ad);
     Image B = mark_corners(b, bd);
     Image lines = draw_matches(A, B, m, {});
-    
     return lines;
 }
 
-// Disegna i match evidenziando gli inlier tramite RANSAC
-Image draw_laplacian_inliers(const Image& a, const Image& b, float sigma, float thresh, int window, 
-                            int nms, float inlier_thresh, int iters, int cutoff) {
+Image draw_laplacian_inliers(const Image& a, const Image& b, float sigma, int num_scales, 
+                                  float scale_factor, float thresh, int nms, int window, 
+                                  float inlier_thresh, int iters, int cutoff) {
     TIME(1);
-    // Rileviamo i punti chiave
-    vector<Descriptor> ad = laplacian_detector(a, sigma, thresh, window, nms);
-    vector<Descriptor> bd = laplacian_detector(b, sigma, thresh, window, nms);
+    vector<Descriptor> ad = log_detector(a, sigma, num_scales, scale_factor, 
+                                        thresh, nms, window);
+    vector<Descriptor> bd = log_detector(b, sigma, num_scales, scale_factor, 
+                                        thresh, nms, window);
     
-    // Troviamo le corrispondenze tra i punti chiave
     vector<Match> m = match_descriptors(ad, bd);
-    
-    // Applichiamo RANSAC per identificare gli inlier
     Matrix Hba = RANSAC(m, inlier_thresh, iters, cutoff);
-    
-    // Disegniamo gli inlier (verde) e gli outlier (rosso)
     return draw_inliers(a, b, Hba, m, inlier_thresh);
 }
 
-// Creazione del panorama utilizzando il rilevatore Laplaciano
-Image panorama_image_laplacian(const Image& a, const Image& b, float sigma, float thresh, int window, 
-                             int nms, float inlier_thresh, int iters, int cutoff, float acoeff) {
+Image panorama_image_laplacian(const Image& a, const Image& b, float sigma, int num_scales, 
+                                  float scale_factor, float thresh, int nms, int window, 
+                                  float inlier_thresh, int iters, int cutoff, float acoeff) {
     TIME(1);
-    // Rileviamo i punti chiave
-    vector<Descriptor> ad = laplacian_detector(a, sigma, thresh, window, nms);
-    vector<Descriptor> bd = laplacian_detector(b, sigma, thresh, window, nms);
-    
-    // Troviamo le corrispondenze tra i punti chiave
+    vector<Descriptor> ad = log_detector(a, sigma, num_scales, scale_factor, 
+                                        thresh, nms, window);
+    vector<Descriptor> bd = log_detector(b, sigma, num_scales, scale_factor, 
+                                        thresh, nms, window);
+
     vector<Match> m = match_descriptors(ad, bd);
-    
-    // Applichiamo RANSAC per stimare la trasformazione omografica
     Matrix Hba = RANSAC(m, inlier_thresh, iters, cutoff);
-    
-    // Combiniamo le immagini per creare il panorama
     return combine_images(a, b, Hba, acoeff);
 }

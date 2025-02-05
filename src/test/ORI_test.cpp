@@ -11,6 +11,8 @@ int main() {
     // Carica le immagini da elaborare
     Image a = load_image("pano/cse/1.jpg");
     Image b = load_image("pano/cse/2.jpg");
+    save_image(a, "output/a");
+    save_image(b, "output/b");
     
     // Definizione dei parametri per il rilevamento delle caratteristiche
     float sigma = 3;          

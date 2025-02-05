@@ -40,8 +40,8 @@ int main(int argc, char **argv){
   
   run_tests();
   
-  Image a = load_image("pano/charlie/F1.jpg");
-  Image b = load_image("pano/charlie/F2.jpg");
+  Image a = load_image("pano/cse/1.jpg");
+  Image b = load_image("pano/cse/2.jpg");
   
   Image corners=detect_and_draw_corners(a, 2, 0.4, 5, 3, 0);
   save_image(corners, "output/corners");
