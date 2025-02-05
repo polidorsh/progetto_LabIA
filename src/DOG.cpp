@@ -51,8 +51,10 @@ vector<Descriptor> detect_dog_keypoints(const vector<Image>& dog_pyramid, float 
     vector<Descriptor> keypoints;
     int levels = dog_pyramid.size();
     
+    Image keypoint_response(dog_pyramid[0].w, dog_pyramid[0].h, 1);
+    
     for(int level = 1; level < levels - 1; level++) {
-        Image current = dog_pyramid[level];
+        const Image& current = dog_pyramid[level];
         
         for(int y = 2; y < current.h - 2; y++) {
             for(int x = 2; x < current.w - 2; x++) {
@@ -76,6 +78,20 @@ vector<Descriptor> detect_dog_keypoints(const vector<Image>& dog_pyramid, float 
                 }
                 
                 if((is_max || is_min) && abs(pixel_val) > thresh) {
+                    keypoint_response(x, y, 0) = abs(pixel_val);
+                }
+            }
+        }
+    }
+    
+    Image nms_response = nms_image(keypoint_response, window);
+    
+    for(int level = 1; level < levels - 1; level++) {
+        const Image& current = dog_pyramid[level];
+        
+        for(int y = 2; y < current.h - 2; y++) {
+            for(int x = 2; x < current.w - 2; x++) {
+                if(nms_response(x, y, 0) > 0) {
                     keypoints.push_back(describe_index(current, x, y, window));
                 }
             }
@@ -87,24 +103,9 @@ vector<Descriptor> detect_dog_keypoints(const vector<Image>& dog_pyramid, float 
 
 vector<Descriptor> dog_corner_detector(const Image& im, float sigma, float thresh, int window, int nms) {
     vector<Image> dog_pyramid = create_dog_pyramid(im, sigma, 4);
-    vector<Descriptor> keypoints = detect_dog_keypoints(dog_pyramid, thresh, window);
-    
-    Image keypoint_response(im.w, im.h, 1);
-    for(const auto& kp : keypoints) {
-        keypoint_response(kp.p.x, kp.p.y, 0) = 1.0;
-    }
-    
-    Image nms_keypoints = nms_image(keypoint_response, nms);
-    
-    vector<Descriptor> filtered_keypoints;
-    for(const auto& kp : keypoints) {
-        if(nms_keypoints(kp.p.x, kp.p.y, 0) > 0) {
-            filtered_keypoints.push_back(kp);
-        }
-    }
-    
-    return filtered_keypoints;
+    return detect_dog_keypoints(dog_pyramid, thresh, nms);
 }
+
 
 Image detect_and_draw_dog_corners(const Image& im, float sigma, float thresh, int window, int nms) {
     TIME(1);

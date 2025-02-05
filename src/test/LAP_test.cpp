@@ -21,7 +21,7 @@ int main() {
     int nms= 20;
 
     float inlier_thresh = 7;
-    int ransac_iters = 600;
+    int ransac_iters = 10000;
     int cutoff = 180;
 
     Image laplacian_points = detect_and_draw_log_keypoints(a, sigma, num_scales, scale_factor, 
