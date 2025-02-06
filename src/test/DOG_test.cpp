@@ -15,8 +15,8 @@ int main() {
     
     float sigma = 1;
     float thresh = 0.05;
-    int window_size = 15;
-    int nms_window = 20;
+    int window = 15;
+    int nms = 20;
     
     float inlier_thresh = 7;
     int ransac_iters = 10000;
@@ -24,17 +24,17 @@ int main() {
     float blend = 0.5;
     
     
-    Image dog_points = detect_and_draw_dog_corners(a, sigma, thresh, window_size, nms_window);
+    Image dog_points = detect_and_draw_dog_corners(a, sigma, thresh, window, nms);
     save_image(dog_points, "output/dog_keypoints");
     
-    Image matches = find_and_draw_dog_matches(a, b, sigma, thresh, window_size, nms_window);
+    Image matches = find_and_draw_dog_matches(a, b, sigma, thresh, window, nms);
     save_image(matches, "output/dog_matches");
     
-    Image inliers = draw_dog_inliers(a, b, sigma, thresh, window_size, nms_window, 
+    Image inliers = draw_dog_inliers(a, b, sigma, thresh, window, nms, 
                                    inlier_thresh, ransac_iters, cutoff);
     save_image(inliers, "output/dog_inliers");
     
-    Image pano = panorama_image_dog(a, b, sigma, thresh, window_size, nms_window,
+    Image pano = panorama_image_dog(a, b, sigma, thresh, window, nms,
                                   inlier_thresh, ransac_iters, cutoff, blend);
     save_image(pano, "output/dog_panorama");
     

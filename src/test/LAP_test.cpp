@@ -18,7 +18,7 @@ int main() {
     float scale_factor=1.5;
     float thresh = 0.05;
     int window = 15;
-    int nms= 20;
+    int nms = 20;
 
     float inlier_thresh = 7;
     int ransac_iters = 10000;

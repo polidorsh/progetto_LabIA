@@ -22,7 +22,7 @@ int main() {
     int iters = 10000;         
     int cutoff = 180;        
     
-    Image corners = oriented_corners(a, sigma, thresh, window, nms);
+    Image corners = detect_and_draw_keypoints(a, sigma, thresh, window, nms);
     save_image(corners, "output/oriented_corners");
 
     Image matches = oriented_matches(a, b, sigma, thresh, window, nms);

@@ -52,10 +52,10 @@ Image multi_scale_log(const Image& im, float initial_sigma, int num_scales, floa
 }
 
 vector<Descriptor> log_detector(const Image& im, float sigma, int num_scales, 
-                              float scale_factor, float thresh, int nms_window, int window) {
+                              float scale_factor, float thresh, int nms_w, int window) {
     
     Image response = multi_scale_log(im, sigma, num_scales, scale_factor);
-    Image nms = nms_image(response, nms_window);
+    Image nms = nms_image(response, nms_w);
     return detect_corners(im, nms, thresh, window);
 }
 

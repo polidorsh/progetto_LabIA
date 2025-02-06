@@ -66,7 +66,6 @@ Image find_and_draw_shi_tomasi_matches(const Image& a, const Image& b, float sig
     
     vector<Match> m = match_descriptors(ad, bd);
     printf("Numero di Match: %ld\n", m.size());
-
     
     Image A = mark_corners(a, ad);
     Image B = mark_corners(b, bd);
