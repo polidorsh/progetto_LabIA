@@ -5,20 +5,17 @@
 Image make_log_filter(float sigma) {
     int w = ceil(sigma * 6);
     if (!(w % 2)) w++;
-    
     Image filter(w, w, 1);
-    int center = w/2;
+    int center = w / 2;
     float sigma2 = sigma * sigma;
-    
-    for(int y = 0; y < w; y++) {
-        for(int x = 0; x < w; x++) {
+    float norm_factor = -1.0 / (M_PI * sigma2 * sigma2);
+    for (int y = 0; y < w; y++) {
+        for (int x = 0; x < w; x++) {
             float dx = x - center;
             float dy = y - center;
-            float r2 = dx*dx + dy*dy;
-            
-            //  -1/(pi*sigma^4) * (1 - r^2/(2*sigma^2)) * e^(-r^2/(2*sigma^2))
-            float expr = exp(-r2/(2*sigma2));
-            filter(x, y, 0) = -1.0/(M_PI*sigma2*sigma2) * (1 - r2/(2*sigma2)) * expr;
+            float r2 = dx * dx + dy * dy;
+            float r2_term = r2 / (2 * sigma2);
+            filter(x, y, 0) = norm_factor * (1 - r2_term) * exp(-r2_term) * (sigma2); // Added sigma^2 scaling
         }
     }
     return filter;
@@ -26,45 +23,32 @@ Image make_log_filter(float sigma) {
 
 Image multi_scale_log(const Image& im, float initial_sigma, int num_scales, float scale_factor) {
     Image response(im.w, im.h, 1);
-    
-    Image gray;
-    if(im.c == 3) gray = rgb_to_grayscale(im);
-    else gray = im;
-    
+    Image gray = (im.c == 3) ? rgb_to_grayscale(im) : im;
     float sigma = initial_sigma;
-    for(int s = 0; s < num_scales; s++) {
+    for (int s = 0; s < num_scales; s++) {
         Image filter = make_log_filter(sigma);
         Image scale_response = convolve_image(gray, filter, true);
-        
-        for(int y = 0; y < im.h; y++) {
-            for(int x = 0; x < im.w; x++) {
+        for (int y = 0; y < im.h; y++) {
+            for (int x = 0; x < im.w; x++) {
                 float val = fabs(scale_response(x, y, 0));
-                if(val > response(x, y, 0)) {
-                    response(x, y, 0) = val;
-                }
+                response(x, y, 0) = std::max(val, response(x, y, 0));
             }
         }
-        
         sigma *= scale_factor;
     }
-    
     return response;
 }
 
-vector<Descriptor> log_detector(const Image& im, float sigma, int num_scales, 
-                              float scale_factor, float thresh, int nms_w, int window) {
-    
+vector<Descriptor> log_detector(const Image& im, float sigma, int num_scales,
+    float scale_factor, float thresh, int nms_w, int window) {
     Image response = multi_scale_log(im, sigma, num_scales, scale_factor);
     Image nms = nms_image(response, nms_w);
     return detect_corners(im, nms, thresh, window);
 }
 
-Image detect_and_draw_log_keypoints(const Image& im, float sigma, int num_scales, 
-                                  float scale_factor, float thresh, int nms, int window) {
-    TIME(1);
-    vector<Descriptor> keypoints = log_detector(im, sigma, num_scales, scale_factor, 
-                                                thresh, nms, window);
-    
+Image detect_and_draw_log_keypoints(const Image& im, float sigma, int num_scales,
+    float scale_factor, float thresh, int nms, int window) {
+    vector<Descriptor> keypoints = log_detector(im, sigma, num_scales, scale_factor, thresh, nms, window);
     printf("Numero di Descrittori: %ld\n", keypoints.size());
     return mark_corners(im, keypoints);
 }

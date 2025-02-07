@@ -4,42 +4,31 @@
 #include <vector>
 #include "image.h"
 
-Image compute_hessian_matrix(const Image& im, int x, int y, float sigma) {
-    Image fx = make_gx_filter();
-    Image fy = make_gy_filter();
-
-    Image Ix = convolve_image(im, fx, true);
-    Image Iy = convolve_image(im, fy, true);
-    Image Ixx = convolve_image(Ix, fx, true);
-    Image Iyy = convolve_image(Iy, fy, true);
-    Image Ixy = convolve_image(Ix, fy, true);
-
-    Image H(2, 2, 1);
-    H(0, 0, 0) = Ixx(x, y, 0);     
-    H(1, 1, 0) = Iyy(x, y, 0);     
-    H(0, 1, 0) = H(1, 0, 0) = Ixy(x, y, 0);  
-
-    return H;
-}
 
 float forstner_interest_measure(const Image& S) {
     float det = S(0, 0, 0) * S(1, 1, 0) - S(0, 1, 0) * S(1, 0, 0);
     float tr = S(0, 0, 0) + S(1, 1, 0);
     
-    float w = det / tr;
-    return w;
+    float qqq = det / (tr + 1e-6); 
+    
+    return qqq;
 }
 
-vector<Descriptor> forstner_harris_hessian_detector(
-    const Image& im, 
-    float sigma = 1.0, 
-    float thresh = 0.01, 
-    int window = 5, 
-    int nms = 3
-) {
-    Image S = structure_matrix(im, sigma);
+float harris_response(const Image& S) {
+    float det = S(0, 0, 0) * S(1, 1, 0) - S(0, 1, 0) * S(1, 0, 0);
+    float tr = S(0, 0, 0) + S(1, 1, 0);
     
+    const float k = 0.04; 
+    return det - k * tr * tr;
+}
+
+vector<Descriptor> forstner_harris_hessian_detector(const Image& im, float sigma, float thresh,
+int window, int nms) {
+    Image S = structure_matrix(im, sigma);
     Image R(im.w, im.h, 1);
+    float max_forstner = -std::numeric_limits<float>::max();
+    float max_harris = -std::numeric_limits<float>::max();
+    
     for(int y = 0; y < im.h; y++) {
         for(int x = 0; x < im.w; x++) {
             Image localS(2, 2, 1);
@@ -47,22 +36,54 @@ vector<Descriptor> forstner_harris_hessian_detector(
             localS(1, 1, 0) = S(x, y, 1);
             localS(0, 1, 0) = localS(1, 0, 0) = S(x, y, 2);
             
-            R(x, y, 0) = forstner_interest_measure(localS);
+            float forstner = forstner_interest_measure(localS);
+            float harris = harris_response(localS);
+            
+            max_forstner = std::max(max_forstner, std::abs(forstner));
+            max_harris = std::max(max_harris, std::abs(harris));
         }
     }
     
-    Image Rnms = nms_image(R, nms);
+    for(int y = 0; y < im.h; y++) {
+        for(int x = 0; x < im.w; x++) {
+            Image localS(2, 2, 1);
+            localS(0, 0, 0) = S(x, y, 0);
+            localS(1, 1, 0) = S(x, y, 1);
+            localS(0, 1, 0) = localS(1, 0, 0) = S(x, y, 2);
+            
+            float forstner = forstner_interest_measure(localS);
+            float harris = harris_response(localS);
+            
+            R(x, y, 0) = (forstner / max_forstner + harris / max_harris) / 2.0;
+        }
+    }
     
-    return detect_corners(im, Rnms, thresh, window);
+    float mean_response = 0, std_response = 0;
+    for(int y = 0; y < im.h; y++) {
+        for(int x = 0; x < im.w; x++) {
+            mean_response += R(x, y, 0);
+        }
+    }
+    mean_response /= (im.w * im.h);
+    
+    for(int y = 0; y < im.h; y++) {
+        for(int x = 0; x < im.w; x++) {
+            std_response += pow(R(x, y, 0) - mean_response, 2);
+        }
+    }
+    std_response = sqrt(std_response / (im.w * im.h));
+    
+    float adaptive_thresh = mean_response + thresh * std_response;
+    Image Rnms = nms_image(R, nms);
+    return detect_corners(im, Rnms, adaptive_thresh, window);
 }
 
-Image detect_and_draw_forstner_corners(const Image& im, float sigma, float thresh, int window, int nms){
+Image detect_and_draw_forstner_corners(const Image& im, float sigma, float thresh, int window, int nms) {
     TIME(1);
     vector<Descriptor> d = forstner_harris_hessian_detector(im, sigma, thresh, window, nms);
     printf("Numero di Descrittori: %ld\n", d.size());
     return mark_corners(im, d);
 }
-
 
 
 Image find_and_draw_forstner_matches(const Image& a, const Image& b, float sigma, float thresh, int window, int nms) {

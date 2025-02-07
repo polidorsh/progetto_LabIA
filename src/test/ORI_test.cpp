@@ -8,19 +8,19 @@
 using namespace std;
 
 int main() {
-    Image a = load_image("pano/cse/1.jpg");
-    Image b = load_image("pano/cse/2.jpg");
+    Image a = load_image("pano/columbia/1.jpg");
+    Image b = load_image("pano/columbia/2.jpg");
     save_image(a, "output/a");
     save_image(b, "output/b");
     
-    float sigma = 1;          
+    float sigma = 2;          
     float thresh = 0.05;      
-    int window = 15;         
-    int nms = 20;            
+    int window = 7;         
+    int nms = 7;            
 
-    float inlier_thresh = 7; 
-    int iters = 10000;         
-    int cutoff = 180;        
+    float inlier_thresh = 5; 
+    int iters = 50000;         
+    int cutoff = 100;        
     
     Image corners = detect_and_draw_keypoints(a, sigma, thresh, window, nms);
     save_image(corners, "output/oriented_corners");

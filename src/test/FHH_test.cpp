@@ -8,22 +8,22 @@
 using namespace std;
 
 int main() {
-    Image a = load_image("pano/cse/1.jpg");
-    Image b = load_image("pano/cse/2.jpg");
+    Image a = load_image("pano/rainier/1.jpg");
+    Image b = load_image("pano/rainier/2.jpg");
     save_image(a, "output/a");
     save_image(b, "output/b");
 
-    float sigma = 1;
-    float thresh = 0.05;
-    int window = 15;
-    int nms = 20;
-    float inlier_thresh = 7;
-    int ransac_iters = 10000;
-    int cutoff = 180;
+    float sigma = 2;
+    float thresh = 0.07;
+    int window = 7;
+    int nms = 10;
+    float inlier_thresh = 5;
+    int ransac_iters = 50000;
+    int cutoff = 100;
     float blend = 0.5;
 
     Image forstner_points = detect_and_draw_forstner_corners(a, sigma, thresh, window, nms);
-    save_image(forstner_points, "output/forstner_keypoints");
+    save_image(forstner_points, "output/forstner_keypoint");
 
     Image matches = find_and_draw_forstner_matches(a, b, sigma, thresh, window, nms);
     save_image(matches, "output/forstner_matches");
