@@ -40,6 +40,9 @@ add_executable(ORI_test src/test/ORI_test.cpp)
 add_executable(ST_test src/test/ST_test.cpp)
 add_executable(FHH_test src/test/FHH_test.cpp)
 
+add_executable(LAP2_test src/test/LAP2_test.cpp)
+
+
 
 
 
