@@ -19,8 +19,6 @@ int main() {
     // Carica le immagini
     Image a = load_image("pano/rainier/0.jpg");
     Image b = load_image("pano/rainier/1.jpg");
-    save_image(a, "output/a");
-    save_image(b, "output/b");
 
     // Parametri per il detector DOG
     float sigma = 1.5;
@@ -31,12 +29,15 @@ int main() {
     // Parametri per RANSAC e per la creazione del panorama
     float inlier_thresh = 5;
     int iters = 10000;
-    int cutoff = 100;
+    int cutoff = 150;
     float acoeff = 0.5;
 
     // Rilevazione e disegno dei keypoint con DOG
-    Image dog_points = detect_and_draw_dog(a, sigma, thresh, window, nms);
-    save_image(dog_points, "output/dog_keypoints");
+    Image dog_points_A = detect_and_draw_dog(a, sigma, thresh, window, nms);
+    save_image(dog_points_A, "output/dog_keypoints");
+
+    Image dog_points_B = detect_and_draw_dog(a, sigma, thresh, window, nms);
+    save_image(dog_points_B, "output/dog_keypoints");
 
     // Ricerca e disegno dei match usando il detector DOG
     Image dog_matches = find_and_draw_dog_matches(a, b, sigma, thresh, window, nms);

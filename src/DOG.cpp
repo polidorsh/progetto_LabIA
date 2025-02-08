@@ -59,6 +59,7 @@ vector<Descriptor> dog_detector(const Image& im, float sigma, float thresh, int 
 Image detect_and_draw_dog(const Image& im, float sigma, float thresh, int window, int nms_window) {
     TIME(1);
     vector<Descriptor> keypoints = dog_detector(im, sigma, thresh, window, nms_window);
+    printf("Numero di Keypoints: %ld\n", keypoints.size());
     return mark_corners(im, keypoints);
 }
 

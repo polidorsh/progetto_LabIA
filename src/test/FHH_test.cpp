@@ -7,32 +7,42 @@
 
 using namespace std;
 
-int main() {
-    Image a = load_image("pano/rainier/1.jpg");
-    Image b = load_image("pano/rainier/2.jpg");
-    save_image(a, "output/a");
-    save_image(b, "output/b");
+//TESTIAMO IL RILEVATORE:
+//Columbia 01 23 45 67 89 || sigma=1.5, thresh=1, window=11, nms=7
+//Rainier  01 23 45       || sigma=1.5, thresh=1, window=11, nms=7
+//Field    32 45 67       || sigma=1.5, thresh=1, window=11, nms=7
+//Helens   01 23 45       || sigma=1.5, thresh=1, window=11, nms=7
+//Sun      01 23          || sigma=1.5, thresh=1, window=11, nms=7
+//Wall     01 12          || sigma=1.5, thresh=1, window=11, nms=7
+//Cse      12 34 56 78    || sigma=1.5, thresh=1, window=11, nms=7
 
-    float sigma = 2;
-    float thresh = 0.07;
-    int window = 7;
-    int nms = 10;
+int main() {
+    Image a = load_image("pano/wall/0.jpg");
+    Image b = load_image("pano/wall/1.jpg");
+
+    float sigma = 1.5;
+    float thresh = 1;
+    int window = 11;
+    int nms = 7;
     float inlier_thresh = 5;
     int ransac_iters = 50000;
-    int cutoff = 100;
+    int cutoff = 150;
     float blend = 0.5;
 
-    Image forstner_points = detect_and_draw_forstner_corners(a, sigma, thresh, window, nms);
-    save_image(forstner_points, "output/forstner_keypoint");
+    Image forstner_points_A = detect_and_draw_fhh_corners(a, sigma, thresh, window, nms);
+    save_image(forstner_points_A, "output/forstner_keypoint_A");
 
-    Image matches = find_and_draw_forstner_matches(a, b, sigma, thresh, window, nms);
+    Image forstner_points_B = detect_and_draw_fhh_corners(b, sigma, thresh, window, nms);
+    save_image(forstner_points_B, "output/forstner_keypoint_B");
+
+    Image matches = find_and_draw_fhh_matches(a, b, sigma, thresh, window, nms);
     save_image(matches, "output/forstner_matches");
 
-    Image inliers = find_and_draw_forstner_inliers(a, b, sigma, thresh, window, nms,
+    Image inliers = find_and_draw_fhh_inliers(a, b, sigma, thresh, window, nms,
         inlier_thresh, ransac_iters, cutoff);
     save_image(inliers, "output/forstner_inliers");
 
-    Image pano = panorama_image_forstner(a, b, sigma, thresh, window, nms,
+    Image pano = panorama_image_fhh(a, b, sigma, thresh, window, nms,
         inlier_thresh, ransac_iters, cutoff, blend);
     save_image(pano, "output/forstner_panorama");
 

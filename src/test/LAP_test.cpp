@@ -20,8 +20,6 @@ int main() {
     // Carica le immagini
     Image a = load_image("pano/cse/1.jpg");
     Image b = load_image("pano/cse/2.jpg");
-    save_image(a, "output/a");
-    save_image(b, "output/b");
 
     // Parametri per il detector LoG
     float sigma = 1.5;
@@ -32,12 +30,15 @@ int main() {
     // Parametri per RANSAC e il panorama
     float inlier_thresh = 5;
     int iters = 10000;
-    int cutoff = 100;
+    int cutoff = 150;
     float acoeff = 0.5;
 
     // Rilevazione e disegno dei keypoint con LoG
-    Image log_points = detect_and_draw_log_keypoints(a, sigma, thresh, window, nms);
-    save_image(log_points, "output/log_keypoints");
+    Image log_points_A = detect_and_draw_log_keypoints(a, sigma, thresh, window, nms);
+    save_image(log_points_A, "output/log_keypoints_A");
+
+    Image log_points_B = detect_and_draw_log_keypoints(b, sigma, thresh, window, nms);
+    save_image(log_points_B, "output/log_keypoints_B");
 
     // Ricerca e disegno dei match usando il detector LoG
     Image log_matches = find_and_draw_log_matches(a, b, sigma, thresh, window, nms);
