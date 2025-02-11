@@ -17,8 +17,8 @@ using namespace std;
 
 int main() {
     // Carica le immagini
-    Image a = load_image("pano/rainier/0.jpg");
-    Image b = load_image("pano/rainier/1.jpg");
+    Image a = load_image("pano/columbia/0.jpg");
+    Image b = load_image("pano/columbia/1.jpg");
 
     float sigma = 1.5;
     float thresh = 0.05;
