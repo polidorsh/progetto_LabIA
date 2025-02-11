@@ -17,13 +17,13 @@ using namespace std;
 
 int main() {
     // Carica le immagini
-    Image a = load_image("pano/cse/1.jpg");
-    Image b = load_image("pano/cse/2.jpg");
+    Image a = load_image("pano/rainier/1.jpg");
+    Image b = load_image("pano/rainier/2.jpg");
 
     float sigma = 1.5;
-    float thresh = 0.2;
-    int window = 10;
-    int nms = 15;  
+    float thresh = 0.3;
+    int window = 11;
+    int nms = 7;  
     
     float inlier_thresh = 5;
     int iters = 10000;
