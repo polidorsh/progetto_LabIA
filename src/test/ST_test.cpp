@@ -17,23 +17,23 @@ using namespace std;
 
 int main() {
     // Carica le immagini
-    Image a = load_image("pano/field/3.jpg");
-    Image b = load_image("pano/field/2.jpg");
+    Image a = load_image("pano/cse/1.jpg");
+    Image b = load_image("pano/cse/2.jpg");
 
     float sigma = 1.5;
-    float thresh = 0.09;
-    int window = 11;
-    int nms = 7;  
+    float thresh = 0.2;
+    int window = 10;
+    int nms = 15;  
     
     float inlier_thresh = 5;
     int iters = 10000;
     int cutoff = 150;
     float acoeff = 0.5;
 
-    Image shi_tomasi_points_A = detect_and_draw_corners_shi_tomasi(a, sigma, thresh, window, nms);
+    Image shi_tomasi_points_A = detect_and_draw_shi_tomasi(a, sigma, thresh, window, nms);
     save_image(shi_tomasi_points_A, "output/shi_tomasi_keypoints_A");
 
-    Image shi_tomasi_points_B = detect_and_draw_corners_shi_tomasi(b, sigma, thresh, window, nms);
+    Image shi_tomasi_points_B = detect_and_draw_shi_tomasi(b, sigma, thresh, window, nms);
     save_image(shi_tomasi_points_B, "output/shi_tomasi_keypoints_B");
 
     Image shi_tomasi_matches = find_and_draw_shi_tomasi_matches(a, b, sigma, thresh, window, nms);

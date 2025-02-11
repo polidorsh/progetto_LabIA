@@ -2,10 +2,6 @@
 #include <vector>
 #include <cmath>
 
-#include "image.h"
-#include <vector>
-#include <cmath>
-
 vector<Descriptor> dog_detector(const Image& im, float sigma, float thresh, int window, int nms_window) {
     Image working_image = (im.c == 1) ? im : rgb_to_grayscale(im);
     
