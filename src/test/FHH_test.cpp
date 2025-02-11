@@ -6,14 +6,23 @@
 
 using namespace std;
 
-int main() {
-    Image a = load_image("pano/columbia/0.jpg");
-    Image b = load_image("pano/columbia/1.jpg");
+//TESTIAMO IL RILEVATORE:
+//Columbia 01 23 45 67 89 || sigma=1.5, thresh=0.5, window=11, nms=7
+//Rainier  01 23 45       || 
+//Field    32 45 67       || 
+//Helens   01 23 45       || 
+//Sun      01 23          || 
+//Wall     12             || 
+//Cse      12 34 56 78    || M123: thresh=0.2, M0: thresh=0.6
 
-    int method = 2; 
+int main() {
+    Image a = load_image("pano/cse/1.jpg");
+    Image b = load_image("pano/cse/2.jpg");
+
+    int method = 0; 
 
     float sigma = 1.5;
-    float thresh = 0.5;
+    float thresh = 0.6;
     int window = 11;
     int nms = 7;  
     

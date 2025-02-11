@@ -70,9 +70,7 @@ vector<Descriptor> fhh_detector(const Image& im, int method, float sigma,
                 
                 float det = Ixx * Iyy - Ixy * Ixy;
                 
-                float trace = Ixx + Iyy;
-                
-                R(x,y,0) = det - 0.04f * trace * trace;
+                R(x,y,0) = det ;
             }
         }
     } else {
@@ -80,18 +78,13 @@ vector<Descriptor> fhh_detector(const Image& im, int method, float sigma,
         
         for(int y = 0; y < S.h; y++) {
             for(int x = 0; x < S.w; x++) {
-                float lambda1, lambda2;
                 float a = S(x,y,0);  // Ix^2
                 float b = S(x,y,1);  // Iy^2
                 float c = S(x,y,2);  // IxIy
                 
                 float trace = a + b;
                 float det = a*b - c*c;
-                float temp = sqrtf(powf(trace, 2) - 4*det);
                 
-                lambda1 = (trace + temp) / 2.0f;
-                lambda2 = (trace - temp) / 2.0f;
-
                 switch(method) {
                     case 1:  // Förstner
                         R(x,y,0) = det / (trace + 1e-8f);
@@ -104,7 +97,8 @@ vector<Descriptor> fhh_detector(const Image& im, int method, float sigma,
                     case 3:  // Ibrido
                         float forstner_weight = det / (trace + 1e-8f);
                         float harris_weight = det - 0.04f * powf(trace, 2);
-                        R(x,y,0) = sqrtf(forstner_weight * harris_weight);
+                        R(x,y,0) = 0.5f * (forstner_weight + harris_weight);
+                        // Alternativa: R(x,y,0) = sqrtf(forstner_weight * harris_weight);
                         break;
                 }
             }
@@ -125,6 +119,7 @@ Image detect_and_draw_fhh(const Image& im, int method, float sigma,
     printf("Numero di Descrittori: %ld\n", corners.size());
     return mark_corners(im, corners);
 }
+
 Image find_and_draw_fhh_matches(const Image& a, const Image& b,
                                           int method, float sigma, float thresh, 
                                           int window, int nms_window) {
