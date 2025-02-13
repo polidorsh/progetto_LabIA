@@ -75,7 +75,7 @@ Image smooth_image(const Image& im, float sigma){
 
 // returns: structure matrix. 1st channel is Ix^2, 2nd channel is Iy^2, third channel is IxIy.
 Image structure_matrix(const Image& im2, float sigma){
-  assert((im2.c==1 || im2.c==3) && "only grayscale or rgb supported");
+  assert((im2.c==1 || im2.c==3));
   Image im;
   if(im2.c==1)im=im2;
   else im=rgb_to_grayscale(im2);

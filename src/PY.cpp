@@ -2,6 +2,7 @@
 #include <cmath>
 #include "image.h"
 
+// Crea il descrittore per il keypoint in x,y
 Descriptor describe_index(const Image& im, int x, int y, int w) {
     Descriptor d;
     d.p = {(double)x, (double)y};
@@ -18,22 +19,15 @@ Descriptor describe_index(const Image& im, int x, int y, int w) {
     return d;
 }
 
-std::vector<Descriptor> detect_scale_space_keypoints(const Image& im,
-                                                     float base_sigma,
-                                                     float thresh,
-                                                     int window,
-                                                     int nms,
-                                                     int num_octaves = 4,
-                                                     int scales_per_octave = 3) {
-    std::vector<Descriptor> keypoints;
-    std::vector<Image> scale_space;
-    std::vector<Image> responses;
-
+// Rileva punti chiave nello spazio delle scale
+vector<Descriptor> detect_scale_space_keypoints(const Image& im, float base_sigma, float thresh, int window, int nms, int num_octaves = 4, int scales_per_octave = 3) {
+    vector<Descriptor> keypoints;
+    vector<Image> scale_space, responses;
     float scale_factor = pow(2.0f, 1.0f / scales_per_octave);
-
     Image current = im;
     float current_sigma = base_sigma;
 
+    // Costruisce lo spazio delle scale
     for (int octave = 0; octave < num_octaves; ++octave) {
         for (int scale = 0; scale < scales_per_octave; ++scale) {
             Image smoothed = smooth_image(current, current_sigma);
@@ -45,15 +39,13 @@ std::vector<Descriptor> detect_scale_space_keypoints(const Image& im,
 
             current_sigma *= scale_factor;
         }
-
         if (octave < num_octaves - 1) {
-            int new_w = current.w / 2;
-            int new_h = current.h / 2;
-            current = bilinear_resize(current, new_w, new_h);
+            current = bilinear_resize(current, current.w / 2, current.h / 2);
             current_sigma = base_sigma;
         }
     }
 
+    // Selezione dei keypoint
     for (int octave = 0; octave < num_octaves; ++octave) {
         for (int scale = 0; scale < scales_per_octave; ++scale) {
             int idx = octave * scales_per_octave + scale;
@@ -63,42 +55,27 @@ std::vector<Descriptor> detect_scale_space_keypoints(const Image& im,
             Image prev_response = responses[idx - 1];
             Image next_response = responses[idx + 1];
 
-            float scale_multiplier = pow(2.0f, octave);
-
             Image nms_result = nms_image(current_response, nms);
 
             for (int y = 0; y < nms_result.h; ++y) {
                 for (int x = 0; x < nms_result.w; ++x) {
                     float current_val = nms_result(x, y, 0);
-
                     if (current_val <= thresh) continue;
-
-                    bool is_scale_maximum = true;
-
-                    float prev_val = prev_response.clamped_pixel(x, y, 0);
-                    if (current_val <= prev_val) {
-                        is_scale_maximum = false;
-                    }
-
-                    float next_val = next_response.clamped_pixel(x, y, 0);
-                    if (current_val <= next_val) {
-                        is_scale_maximum = false;
-                    }
-
-                    if (is_scale_maximum) {
-                        Descriptor d = describe_index(scale_space[idx], x, y, window);
-                        d.p.x = x * scale_multiplier;
-                        d.p.y = y * scale_multiplier;
-                        keypoints.push_back(d);
-                    }
+                    if (current_val <= prev_response.clamped_pixel(x, y, 0) || current_val <= next_response.clamped_pixel(x, y, 0)) continue;
+                    
+                    Descriptor d = describe_index(scale_space[idx], x, y, window);
+                    float scale_multiplier = pow(2.0f, octave);
+                    d.p.x = x * scale_multiplier;
+                    d.p.y = y * scale_multiplier;
+                    keypoints.push_back(d);
                 }
             }
         }
     }
-
     return keypoints;
 }
 
+// Rileva e disegna i punti chiave
 Image detect_and_draw_scale_space_keypoints(const Image& im, float base_sigma, float thresh, int window, int nms, int num_octaves = 4, int scales_per_octave = 3) {
     TIME(1);
     std::vector<Descriptor> keypoints = detect_scale_space_keypoints(im, base_sigma, thresh, window, nms, num_octaves, scales_per_octave);
@@ -106,54 +83,30 @@ Image detect_and_draw_scale_space_keypoints(const Image& im, float base_sigma, f
     return mark_corners(im, keypoints);
 }
 
-
-Image find_and_draw_scale_matches(const Image& a, const Image& b,
-                                  float sigma, float thresh, int window, int nms_window,
-                                  int num_octaves = 4, int scales_per_octave = 3) {
+// Trova e disegna i match tra due immagini
+Image find_and_draw_scale_matches(const Image& a, const Image& b, float sigma, float thresh, int window, int nms_window, int num_octaves = 4, int scales_per_octave = 3) {
     TIME(1);
-    std::vector<Descriptor> ad = detect_scale_space_keypoints(a, sigma, thresh, window, nms_window,
-                                                              num_octaves, scales_per_octave);
-    std::vector<Descriptor> bd = detect_scale_space_keypoints(b, sigma, thresh, window, nms_window,
-                                                              num_octaves, scales_per_octave);
-
-    std::vector<Match> m = match_descriptors(ad, bd);
+    auto ad = detect_scale_space_keypoints(a, sigma, thresh, window, nms_window, num_octaves, scales_per_octave);
+    auto bd = detect_scale_space_keypoints(b, sigma, thresh, window, nms_window, num_octaves, scales_per_octave);
+    auto m = match_descriptors(ad, bd);
     printf("Numero di Match: %ld\n", m.size());
-
-    Image A = mark_corners(a, ad);
-    Image B = mark_corners(b, bd);
-
-    Image lines = draw_matches(A, B, m, {});
-    return lines;
+    return draw_matches(mark_corners(a, ad), mark_corners(b, bd), m, {});
 }
 
-Image draw_scale_inliers(const Image& a, const Image& b,
-                        float sigma, float thresh, int window, int nms_window,
-                        float inlier_thresh, int iters, int cutoff,
-                        int num_octaves=4, int scales_per_octave=3) {
-    vector<Descriptor> ad = detect_scale_space_keypoints(a, sigma, thresh, window, nms_window, 
-                                                         num_octaves, scales_per_octave);
-    vector<Descriptor> bd = detect_scale_space_keypoints(b, sigma, thresh, window, nms_window, 
-                                                         num_octaves, scales_per_octave);
-    
-    vector<Match> m = match_descriptors(ad, bd);
-    
-    Matrix Hba = RANSAC(m, inlier_thresh, iters, cutoff);
-    
+// Disegna gli inliers trovati con RANSAC
+Image draw_scale_inliers(const Image& a, const Image& b, float sigma, float thresh, int window, int nms_window, float inlier_thresh, int iters, int cutoff, int num_octaves=4, int scales_per_octave=3) {
+    auto ad = detect_scale_space_keypoints(a, sigma, thresh, window, nms_window, num_octaves, scales_per_octave);
+    auto bd = detect_scale_space_keypoints(b, sigma, thresh, window, nms_window, num_octaves, scales_per_octave);
+    auto m = match_descriptors(ad, bd);
+    auto Hba = RANSAC(m, inlier_thresh, iters, cutoff);
     return draw_inliers(a, b, Hba, m, inlier_thresh);
 }
 
-Image panorama_image_scale(const Image& a, const Image& b,
-                          float sigma, float thresh, int window, int nms_window,
-                          float inlier_thresh, int iters, int cutoff, float acoeff,
-                          int num_octaves=4, int scales_per_octave=3) {
-    vector<Descriptor> ad = detect_scale_space_keypoints(a, sigma, thresh, window, nms_window, 
-                                                         num_octaves, scales_per_octave);
-    vector<Descriptor> bd = detect_scale_space_keypoints(b, sigma, thresh, window, nms_window, 
-                                                         num_octaves, scales_per_octave);
-    
-    vector<Match> m = match_descriptors(ad, bd);
-    
-    Matrix Hba = RANSAC(m, inlier_thresh, iters, cutoff);
-    
+// Crea un panorama usando i keypoint dello spazio delle scale
+Image panorama_image_scale(const Image& a, const Image& b, float sigma, float thresh, int window, int nms_window, float inlier_thresh, int iters, int cutoff, float acoeff, int num_octaves=4, int scales_per_octave=3) {
+    auto ad = detect_scale_space_keypoints(a, sigma, thresh, window, nms_window, num_octaves, scales_per_octave);
+    auto bd = detect_scale_space_keypoints(b, sigma, thresh, window, nms_window, num_octaves, scales_per_octave);
+    auto m = match_descriptors(ad, bd);
+    auto Hba = RANSAC(m, inlier_thresh, iters, cutoff);
     return combine_images(a, b, Hba, acoeff);
 }

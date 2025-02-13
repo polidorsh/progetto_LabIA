@@ -346,7 +346,7 @@ Image combine_images(const Image& a, const Image& b, const Matrix& Hba, float ab
           }
       }
   return trim_image(c);
-  }
+}
 
 // Create a panoramam between two images.
 Image panorama_image(const Image& a, const Image& b, float sigma, int corner_method, float thresh, int window, int nms, float inlier_thresh, int iters, int cutoff, float acoeff){
