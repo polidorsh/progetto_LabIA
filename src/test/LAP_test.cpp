@@ -8,22 +8,23 @@
 using namespace std;
 
 //TESTIAMO IL RILEVATORE:
-//Columbia 01 23 45 67 89 || sigma=1.5, thresh=0.05, window=11, nms=7
-//Rainier  01 23 45       || 
-//Field    32 45 67       || 
-//Helens   01 23 45       || 
-//Sun      01 23          || 
-//Wall     12             || 
-//Cse      12 34 56 78    || 
+//columbia 01 23 45 67 89 || sigma=1.5, thresh=0.05, window=10, nms=10
+//rainier  01 23 45       || 
+//field    10 32 45 67    || 
+//helens   01 23 45       || 
+//sun      01 23          || 
+//wall     01 12          || 
+//cse      12 34 56 78    || 
 
 int main() {
-    Image a = load_image("pano/columbia/0.jpg");
-    Image b = load_image("pano/columbia/1.jpg");
+
+    Image a = load_image("pano/cse/1.jpg");
+    Image b = load_image("pano/cse/2.jpg");
 
     float sigma = 1.5;
     float thresh = 0.05;
-    int window = 11;
-    int nms = 7;
+    int window = 10;
+    int nms = 10;
     
     float inlier_thresh = 5;
     int iters = 10000;

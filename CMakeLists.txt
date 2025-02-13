@@ -39,19 +39,7 @@ add_executable(LAP_test src/test/LAP_test.cpp)
 add_executable(ST_test src/test/ST_test.cpp)
 add_executable(FHH_test src/test/FHH_test.cpp)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+add_executable(PY_test src/test/PY_test.cpp)
 
 
 

@@ -36,7 +36,7 @@ Image find_and_draw_dog_matches(const Image& a, const Image& b,
     vector<Descriptor> bd = dog_detector(b, sigma, thresh, window, nms_window);
     
     vector<Match> m = match_descriptors(ad, bd);
-    printf("Numero di Match: %ld\n", m.size());
+    printf("Numero di Match: %zu\n", m.size());
     
     Image A = mark_corners(a, ad);
     Image B = mark_corners(b, bd);

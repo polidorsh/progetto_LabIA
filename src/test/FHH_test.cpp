@@ -6,25 +6,25 @@
 
 using namespace std;
 
-//TESTIAMO IL RILEVATORE:
-//Columbia 01 23 45 67 89 || sigma=1.5, thresh=0.5, window=11, nms=7
-//Rainier  01 23 45       || 
-//Field    32 45 67       || 
-//Helens   01 23 45       || 
-//Sun      01 23          || 
-//Wall     12             || 
-//Cse      12 34 56 78    || M123: thresh=0.2, M0: thresh=0.6
+//TESTIAMO IL RILEVATORE: sigma=1.5, window=10, nms=10
+//columbia 01 23 45 67 89 || METODO 0: thresh=3   || METODO 123: thresh=0.2
+//rainier  01 23 45       ||                      ||
+//field    32 45 67       ||                      ||                    
+//helens   10 23 45       ||                      ||                    
+//sun      01 23          ||                      ||
+//wall     01 12          ||                      ||
+//cse      12 34 56 78    ||                      ||
 
 int main() {
     Image a = load_image("pano/cse/1.jpg");
     Image b = load_image("pano/cse/2.jpg");
 
-    int method = 0; 
+    int method = 3; 
 
     float sigma = 1.5;
-    float thresh = 0.6;
-    int window = 11;
-    int nms = 7;  
+    float thresh = 0.2;
+    int window = 10;
+    int nms = 10;  
     
     float inlier_thresh = 5;
     int iters = 10000;

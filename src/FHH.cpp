@@ -33,28 +33,6 @@ Image compute_hessian(const Image& im, float sigma) {
     return H;
 }
 
-void normalize_response(Image& R) {
-    float min_val = INFINITY;
-    float max_val = -INFINITY;
-    
-    for(int y = 0; y < R.h; y++) {
-        for(int x = 0; x < R.w; x++) {
-            float val = R(x,y,0);
-            if(val < min_val) min_val = val;
-            if(val > max_val) max_val = val;
-        }
-    }
-    
-    float range = max_val - min_val;
-    if(range < 1e-8f) range = 1e-8f;
-    
-    for(int y = 0; y < R.h; y++) {
-        for(int x = 0; x < R.w; x++) {
-            R(x,y,0) = (R(x,y,0) - min_val) / range;
-        }
-    }
-}
-
 vector<Descriptor> fhh_detector(const Image& im, int method, float sigma, 
                                           float thresh, int window, int nms_window) {
     Image R(im.w, im.h, 1);
@@ -84,6 +62,9 @@ vector<Descriptor> fhh_detector(const Image& im, int method, float sigma,
                 
                 float trace = a + b;
                 float det = a*b - c*c;
+
+                float forstner_weight;
+                float harris_weight;
                 
                 switch(method) {
                     case 1:  // Förstner
@@ -95,17 +76,19 @@ vector<Descriptor> fhh_detector(const Image& im, int method, float sigma,
                         break;
                         
                     case 3:  // Ibrido
-                        float forstner_weight = det / (trace + 1e-8f);
-                        float harris_weight = det - 0.04f * powf(trace, 2);
+                        forstner_weight = det / (trace + 1e-8f);
+                        harris_weight = det - 0.04f * powf(trace, 2);
                         R(x,y,0) = 0.5f * (forstner_weight + harris_weight);
                         // Alternativa: R(x,y,0) = sqrtf(forstner_weight * harris_weight);
                         break;
+
+                    default:  // Caso non valido
+                        fprintf(stderr, "Errore: metodo non valido.\n");
+                        exit(EXIT_FAILURE);
                 }
             }
         }
     }
-
-    normalize_response(R);
 
     Image Rnms = nms_image(R, nms_window);
     return detect_corners(im, Rnms, thresh, window);
