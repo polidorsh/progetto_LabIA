@@ -61,6 +61,8 @@ vector<Descriptor> fhh_detector(const Image& im, int method, float sigma,
                 float c = S(x,y,2);  // IxIy
                 float trace = a + b;
                 float det = a * b - c * c;
+                float forstner_weight, harris_weight;
+
                 switch(method) {
                     case 1:  // Förstner
                         R(x,y,0) = det / (trace + 1e-8f);
@@ -69,8 +71,8 @@ vector<Descriptor> fhh_detector(const Image& im, int method, float sigma,
                         R(x,y,0) = det - 0.04f * powf(trace, 2);
                         break;
                     case 3:  // Ibrido
-                        float forstner_weight = det / (trace + 1e-8f);
-                        float harris_weight = det - 0.04f * powf(trace, 2);
+                        forstner_weight = det / (trace + 1e-8f);
+                        harris_weight = det - 0.04f * powf(trace, 2);
                         R(x,y,0) = 0.5f * (forstner_weight + harris_weight);
                         break;
                     default:
